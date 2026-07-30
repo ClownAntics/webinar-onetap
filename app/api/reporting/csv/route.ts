@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { cookies } from "next/headers";
+import { getEmployee } from "@/lib/auth";
 import { computeAllWebinarMetrics } from "@/lib/reporting";
 import type { WebinarMetrics } from "@/lib/types";
 
@@ -43,8 +43,7 @@ function csvCell(v: unknown): string {
 }
 
 export async function GET() {
-  const jar = await cookies();
-  if (jar.get("admin_ok")?.value !== "1") {
+  if ((await getEmployee()).reason !== "ok") {
     return NextResponse.json({ error: "unauthorized" }, { status: 401 });
   }
 

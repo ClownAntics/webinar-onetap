@@ -1,13 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
-import { cookies } from "next/headers";
 import { appSupabase } from "@/lib/supabase";
+import { getEmployee } from "@/lib/auth";
 import { nextStatusOnManual, type ManualAction } from "@/lib/status";
 import type { WebinarStatus } from "@/lib/types";
 
 export const runtime = "nodejs";
 
 export async function POST(req: NextRequest) {
-  if ((await cookies()).get("admin_ok")?.value !== "1") {
+  if ((await getEmployee()).reason !== "ok") {
     return NextResponse.json({ error: "unauthorized" }, { status: 401 });
   }
 

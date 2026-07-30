@@ -24,6 +24,16 @@ export const env = {
     url: optional("SUPABASE_URL"),
     serviceKey: optional("SUPABASE_SERVICE_KEY"),
   },
+  // Public Supabase creds for Auth (Google sign-in). Safe to expose to the browser.
+  publicSupabase: {
+    url: optional("NEXT_PUBLIC_SUPABASE_URL"),
+    anonKey: optional("NEXT_PUBLIC_SUPABASE_ANON_KEY"),
+  },
+  // Employees are gated by email domain (Google Workspace).
+  allowedDomains: (optional("ADMIN_ALLOWED_DOMAINS") ?? "clownantics.com,facepaint.com")
+    .split(",")
+    .map((d) => d.trim().toLowerCase())
+    .filter(Boolean),
   sales: {
     url: optional("SALES_SUPABASE_URL"),
     key: optional("SALES_SUPABASE_KEY"),
@@ -31,7 +41,6 @@ export const env = {
   omnisend: {
     apiKey: optional("OMNISEND_API_KEY"),
   },
-  adminPasscode: optional("ADMIN_PASSCODE"),
   siteUrl: optional("NEXT_PUBLIC_SITE_URL") ?? "https://webinars.facepaint.com",
 };
 

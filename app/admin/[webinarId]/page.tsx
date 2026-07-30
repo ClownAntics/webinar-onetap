@@ -1,6 +1,6 @@
-import { cookies } from "next/headers";
 import Link from "next/link";
-import PasscodeGate from "../passcode-gate";
+import LoginGate from "../login-gate";
+import { getEmployee } from "@/lib/auth";
 import StatusPill from "../status-pill";
 import SetupPanel from "./setup-panel";
 import CopyButton from "./copy-button";
@@ -73,7 +73,8 @@ export default async function WebinarDetail({
   params: Promise<{ webinarId: string }>;
 }) {
   const { webinarId } = await params;
-  if ((await cookies()).get("admin_ok")?.value !== "1") return <PasscodeGate />;
+  const auth = await getEmployee();
+  if (auth.reason !== "ok") return <LoginGate reason={auth.reason} email={auth.email} />;
 
   const d = await loadDetail(webinarId);
 

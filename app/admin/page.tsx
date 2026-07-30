@@ -1,6 +1,6 @@
-import { cookies } from "next/headers";
 import Link from "next/link";
-import PasscodeGate from "./passcode-gate";
+import LoginGate from "./login-gate";
+import { getEmployee } from "@/lib/auth";
 import StatusPill from "./status-pill";
 import { listWebinars } from "@/lib/zoom";
 import { appSupabase } from "@/lib/supabase";
@@ -109,8 +109,8 @@ async function loadDashboard(): Promise<{ cards: CardData[]; zoomError?: string;
 }
 
 export default async function AdminPage() {
-  const jar = await cookies();
-  if (jar.get("admin_ok")?.value !== "1") return <PasscodeGate />;
+  const auth = await getEmployee();
+  if (auth.reason !== "ok") return <LoginGate reason={auth.reason} email={auth.email} />;
 
   const { cards, zoomError, dbError } = await loadDashboard();
 
@@ -126,8 +126,14 @@ export default async function AdminPage() {
 
   return (
     <main style={{ minHeight: "100vh", background: "#f5f4f0", color: "#2f302f" }}>
-      <header style={{ background: "#2f302f", color: "#fff", padding: "14px 20px", fontWeight: 800 }}>
-        Webinar Admin
+      <header style={{ background: "#2f302f", color: "#fff", padding: "14px 20px", fontWeight: 800, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+        <span>Webinar Admin</span>
+        <span style={{ fontSize: 12, fontWeight: 500, color: "#bbb", display: "flex", gap: 10, alignItems: "center" }}>
+          {auth.email}
+          <form action="/auth/signout" method="post">
+            <button type="submit" style={{ background: "none", border: "none", color: "#FCD700", fontSize: 12, cursor: "pointer" }}>Sign out</button>
+          </form>
+        </span>
       </header>
 
       <div style={{ maxWidth: 880, margin: "0 auto", padding: 24 }}>

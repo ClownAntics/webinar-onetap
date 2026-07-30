@@ -1,6 +1,6 @@
-import { cookies } from "next/headers";
 import Link from "next/link";
-import PasscodeGate from "../passcode-gate";
+import LoginGate from "../login-gate";
+import { getEmployee } from "@/lib/auth";
 import { computeAllWebinarMetrics } from "@/lib/reporting";
 import type { WebinarMetrics } from "@/lib/types";
 import LineChart, { type Point } from "./line-chart";
@@ -11,8 +11,8 @@ const usd = (n: number) =>
   n >= 1000 ? `$${(n / 1000).toFixed(1)}k` : `$${Math.round(n)}`;
 
 export default async function TrendsPage() {
-  const jar = await cookies();
-  if (jar.get("admin_ok")?.value !== "1") return <PasscodeGate />;
+  const auth = await getEmployee();
+  if (auth.reason !== "ok") return <LoginGate reason={auth.reason} email={auth.email} />;
 
   let metrics: WebinarMetrics[] = [];
   let skipped = 0;

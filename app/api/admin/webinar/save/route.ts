@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
-import { cookies } from "next/headers";
 import { appSupabase } from "@/lib/supabase";
+import { getEmployee } from "@/lib/auth";
 import { getWebinar } from "@/lib/zoom";
 import { fireEvent, upsertContact } from "@/lib/omnisend";
 import { nextStatusOnSave } from "@/lib/status";
@@ -20,12 +20,8 @@ interface SaveBody {
   discount_expiry?: string;
 }
 
-async function isAuthed(): Promise<boolean> {
-  return (await cookies()).get("admin_ok")?.value === "1";
-}
-
 export async function POST(req: NextRequest) {
-  if (!(await isAuthed())) {
+  if ((await getEmployee()).reason !== "ok") {
     return NextResponse.json({ error: "unauthorized" }, { status: 401 });
   }
 
