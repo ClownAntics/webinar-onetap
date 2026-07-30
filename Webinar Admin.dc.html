@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet data-dc-atomics>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+<script src="./image-slot.js"></script>
+<style>
+body{margin:0;background:#F5F4F0;font-family:Montserrat,system-ui,sans-serif}
+a{color:#0C84A4;text-decoration:none}a:hover{color:#B41F24}
+input,textarea,button,select{font-family:Montserrat,system-ui,sans-serif}
+</style>
+</helmet>
+
+<sc-if value="{{ locked }}" hint-placeholder-val="{{ false }}">
+  <div style="min-height:100vh;display:flex;align-items:center;justify-content:center;background:#2F302F">
+    <div style="width:360px;background:#fff;border-radius:20px;padding:36px 32px;display:flex;flex-direction:column;gap:16px;align-items:center;text-align:center">
+      <img src="uploads/FP_Logo_144x144.jpg" alt="FacePaint" style="width:72px;height:72px;object-fit:contain">
+      <div style="font-size:19px;font-weight:800;color:#2F302F">Webinar Admin</div>
+      <div style="font-size:13px;color:#666767;line-height:1.5">Enter the team passcode to continue.</div>
+      <input type="password" placeholder="Passcode" value="{{ passInput }}" onChange="{{ setPass }}" style="width:100%;box-sizing:border-box;height:48px;border:1.5px solid #C8C8C8;border-radius:12px;padding:0 14px;font-size:15px;text-align:center;letter-spacing:3px" style-focus="outline:none;border-color:#0C84A4">
+      <button onClick="{{ unlock }}" style="width:100%;height:50px;border:none;border-radius:12px;background:#2F302F;color:#fff;font-size:15px;font-weight:700;cursor:pointer" style-hover="background:#444">Unlock</button>
+    </div>
+  </div>
+</sc-if>
+
+<sc-if value="{{ unlocked }}" hint-placeholder-val="{{ true }}">
+  <div style="min-height:100vh;display:flex;flex-direction:column">
+    <div style="background:#2F302F;display:flex;align-items:center;gap:14px;padding:12px 28px">
+      <img src="uploads/FP_Logo_144x144.jpg" alt="FacePaint" style="width:44px;height:44px;object-fit:contain;border-radius:50%">
+      <div style="font-size:16px;font-weight:800;color:#fff">Webinar Admin</div>
+      <div style="margin-left:auto;font-size:12px;color:rgba(255,255,255,.55)">webinars.facepaint.com/admin</div>
+    </div>
+    <div style="width:100%;max-width:880px;margin:0 auto;padding:32px 24px 64px;box-sizing:border-box;display:flex;flex-direction:column;gap:14px">
+      <div style="display:flex;align-items:baseline;gap:12px">
+        <div style="font-size:22px;font-weight:800;color:#2F302F">Upcoming webinars</div>
+        <div style="font-size:12.5px;color:#666767">pulled from Zoom — create webinars there as usual</div>
+      </div>
+
+      <sc-for list="{{ webinars }}" as="w" hint-placeholder-count="3">
+        <div style="background:#fff;border:1px solid rgba(0,0,0,.08);border-radius:16px;overflow:hidden">
+          <div style="display:flex;align-items:center;gap:16px;padding:18px 22px">
+            <div style="display:flex;flex-direction:column;gap:3px;min-width:0;flex:1">
+              <div style="font-size:15px;font-weight:700;color:#2F302F;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ w.topic }}</div>
+              <div style="font-size:12.5px;color:#666767">{{ w.date }}</div>
+            </div>
+            <sc-if value="{{ w.ready }}" hint-placeholder-val="{{ false }}">
+              <div style="flex:none;font-size:11.5px;font-weight:800;letter-spacing:.5px;color:#3c7d2b;background:#E8F5E1;border-radius:999px;padding:5px 12px">READY</div>
+              <sc-if value="{{ w.copied }}" hint-placeholder-val="{{ false }}"><button style="flex:none;height:40px;padding:0 16px;border:none;border-radius:10px;background:#54AF3E;color:#fff;font-size:13px;font-weight:700;cursor:default">Copied!</button></sc-if>
+              <sc-if value="{{ w.notCopied }}" hint-placeholder-val="{{ true }}"><button onClick="{{ w.copy }}" style="flex:none;height:40px;padding:0 16px;border:none;border-radius:10px;background:#0C84A4;color:#fff;font-size:13px;font-weight:700;cursor:pointer" style-hover="opacity:.9">Copy link for Yumer</button></sc-if>
+            </sc-if>
+            <sc-if value="{{ w.notReady }}" hint-placeholder-val="{{ true }}">
+              <div style="flex:none;font-size:11.5px;font-weight:800;letter-spacing:.5px;color:#8a6d00;background:#FFF3C4;border-radius:999px;padding:5px 12px">NOT SET UP</div>
+            </sc-if>
+            <button onClick="{{ w.select }}" style="flex:none;height:40px;padding:0 16px;border:1.5px solid #C8C8C8;border-radius:10px;background:#fff;color:#2F302F;font-size:13px;font-weight:700;cursor:pointer" style-hover="border-color:#2F302F">{{ w.editLabel }}</button>
+          </div>
+
+          <sc-if value="{{ w.open }}" hint-placeholder-val="{{ false }}">
+            <div style="border-top:1px solid rgba(0,0,0,.07);background:#FBFAF7;padding:22px;display:flex;gap:28px;flex-wrap:wrap">
+              <div style="flex:1;min-width:300px;display:flex;flex-direction:column;gap:16px">
+                <div style="display:flex;flex-direction:column;gap:6px">
+                  <div style="font-size:12px;font-weight:800;letter-spacing:.5px;color:#666767">DISPLAY TITLE</div>
+                  <input value="{{ formTitle }}" onChange="{{ setTitle }}" style="height:46px;border:1.5px solid #C8C8C8;border-radius:12px;padding:0 14px;font-size:14px;background:#fff" style-focus="outline:none;border-color:#0C84A4">
+                  <div style="font-size:11.5px;color:#999">prefilled from the Zoom topic — edit freely</div>
+                </div>
+                <div style="display:flex;flex-direction:column;gap:6px">
+                  <div style="font-size:12px;font-weight:800;letter-spacing:.5px;color:#666767">QUESTION TEMPLATE</div>
+                  <select value="{{ formTemplate }}" onChange="{{ setTemplate }}" style="height:46px;border:1.5px solid #C8C8C8;border-radius:12px;padding:0 10px;font-size:14px;background:#fff;color:#2F302F">
+                    <option value="demo">Product Demo</option>
+                    <option value="webinar">Webinar</option>
+                    <option value="masterclass">Masterclass</option>
+                    <option value="custom">Custom</option>
+                  </select>
+                  <textarea value="{{ formQuestion }}" onChange="{{ setQuestion }}" rows="2" style="border:1.5px solid #C8C8C8;border-radius:12px;padding:11px 14px;font-size:14px;background:#fff;resize:none;color:#2F302F" style-focus="outline:none;border-color:#0C84A4"></textarea>
+                  <div style="font-size:11.5px;color:#999">template fills in the event's topic — tweak the wording per event; answers go to the webinar's Zoom question</div>
+                </div>
+                <div style="display:flex;gap:10px;align-items:center">
+                  <button onClick="{{ save }}" style="height:48px;padding:0 26px;border:none;border-radius:12px;background:#54AF3E;color:#fff;font-size:15px;font-weight:800;cursor:pointer;box-shadow:0 3px 0 #3c7d2b" style-active="transform:translateY(2px);box-shadow:0 1px 0 #3c7d2b" style-hover="background:#5BBB47">Save — mark Ready</button>
+                  <a onClick="{{ closeForm }}" style="cursor:pointer;font-size:13px;font-weight:600">Cancel</a>
+                </div>
+              </div>
+              <div style="width:300px;flex:none;display:flex;flex-direction:column;gap:6px">
+                <div style="font-size:12px;font-weight:800;letter-spacing:.5px;color:#666767">BANNER</div>
+                <image-slot id="{{ w.slotId }}" radius="12" fit="contain" placeholder="Drop banner image (1280×400)" style="width:300px;height:94px"></image-slot>
+                <div style="font-size:11.5px;color:#999;line-height:1.5">uploads to Supabase Storage · falls back to the generic FacePaint banner if skipped</div>
+              </div>
+            </div>
+          </sc-if>
+
+          <sc-if value="{{ w.showLink }}" hint-placeholder-val="{{ false }}">
+            <div style="border-top:1px solid rgba(0,0,0,.07);background:#FBFAF7;padding:14px 22px;display:flex;flex-direction:column;gap:4px">
+              <div style="font-size:11px;font-weight:800;letter-spacing:.5px;color:#666767">LINK FOR YUMER · Omnisend merge tags baked in, swap src per channel</div>
+              <div style="font-family:ui-monospace,Menlo,monospace;font-size:12px;color:#0C84A4;word-break:break-all">{{ w.link }}</div>
+            </div>
+          </sc-if>
+        </div>
+      </sc-for>
+
+      <div style="font-size:12px;color:#999;line-height:1.6;margin-top:8px">A webinar must be Ready before its landing page goes live — an un-set-up link falls back to Zoom's native registration. Zoom-side: add the custom question and set it <b>not required</b>.</div>
+    </div>
+  </div>
+</sc-if>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{
+  &quot;passcodeGate&quot;: {&quot;editor&quot;: &quot;boolean&quot;, &quot;default&quot;: false, &quot;tsType&quot;: &quot;boolean&quot;, &quot;section&quot;: &quot;States&quot;}
+}">
+class Component extends DCLogic {
+  ZOOM = [
+    { id: '893412', topic: '20260803 Sea Creature Designs (Yasmeen Hart) Webinar', date: 'Mon, Aug 3 · 4:00 PM ET', parsed: 'Sea Creature Designs with Yasmeen Hart', presenter: 'Yasmeen Hart', kind: 'webinar' },
+    { id: '901558', topic: '20260817 Speed Painting Eye Designs (Yasmeen Hart) Masterclass', date: 'Mon, Aug 17 · 4:00 PM ET', parsed: 'Speed Painting Eye Designs with Yasmeen Hart', presenter: 'Yasmeen Hart', kind: 'masterclass' },
+    { id: '914203', topic: '20260910 Vivid Glitter Product Demo', date: 'Thu, Sep 10 · 4:00 PM ET', parsed: 'Vivid Glitter Product Demo', presenter: 'the team', kind: 'demo', topicKey: 'glitter' },
+  ];
+  state = {
+    unlocked: false, passInput: '',
+    ready: { '893412': true },
+    open: null, copied: null,
+    formTitle: '', formTemplate: 'webinar', formQuestion: '', formPromo: false,
+  };
+  topicOf(w) {
+    return w.topicKey || (this.state.formTitle || w.parsed).replace(/ with .*/, '').replace(/ (Product Demo|Masterclass|Webinar)$/i, '').toLowerCase();
+  }
+  templateText(tpl, w) {
+    const topic = this.topicOf(w);
+    if (tpl === 'demo') return 'What questions do you have about ' + topic + '?';
+    if (tpl === 'webinar') return 'What kind of ' + topic + ' do you want to see?';
+    if (tpl === 'masterclass') return 'What specific topics would you like us to cover on ' + topic + '?';
+    return this.state.formQuestion;
+  }
+  openForm(w) {
+    const tpl = w.kind === 'demo' ? 'demo' : w.kind === 'masterclass' ? 'masterclass' : 'webinar';
+    const topic = w.topicKey || w.parsed.replace(/ with .*/, '').replace(/ (Product Demo|Masterclass|Webinar)$/i, '').toLowerCase();
+    const q = tpl === 'demo' ? 'What questions do you have about ' + topic + '?'
+      : tpl === 'masterclass' ? 'What specific topics would you like us to cover on ' + topic + '?'
+      : 'What kind of ' + topic + ' do you want to see?';
+    this.setState({ open: w.id, formTitle: w.parsed, formTemplate: tpl, formPromo: false, formQuestion: q });
+  }
+  renderVals() {
+    const gate = this.props.passcodeGate ?? false;
+    const unlocked = !gate || this.state.unlocked;
+    const webinars = this.ZOOM.map(w => {
+      const ready = !!this.state.ready[w.id];
+      const copied = this.state.copied === w.id;
+      const link = 'https://webinars.facepaint.com/w/' + w.id + '?e=[[contact.email]]&fn=[[contact.firstName]]&src=sms';
+      return {
+        ...w, ready, notReady: !ready,
+        open: this.state.open === w.id,
+        editLabel: ready ? 'Edit setup' : 'Set up',
+        copyLabel: copied ? 'Copied!' : 'Copy link for Yumer',
+        copyBg: copied ? '#54AF3E' : '#0C84A4',
+        showLink: copied, link,
+        slotId: 'banner-admin-' + w.id,
+        select: () => this.state.open === w.id ? this.setState({ open: null }) : this.openForm(w),
+        copy: () => {
+          try { navigator.clipboard.writeText(link); } catch (e) {}
+          this.setState({ copied: w.id });
+          clearTimeout(this.ct); this.ct = setTimeout(() => this.setState({ copied: null }), 2500);
+        },
+      };
+    });
+    const cur = this.ZOOM.find(w => w.id === this.state.open);
+    return {
+      locked: !unlocked, unlocked, webinars,
+      passInput: this.state.passInput,
+      setPass: e => this.setState({ passInput: e.target.value }),
+      unlock: () => this.setState({ unlocked: true }),
+      formTitle: this.state.formTitle,
+      formTemplate: this.state.formTemplate,
+      formQuestion: this.state.formQuestion,
+      formPromo: this.state.formPromo,
+      setTitle: e => this.setState({ formTitle: e.target.value }),
+      setTemplate: e => {
+        const tpl = e.target.value;
+        this.setState({ formTemplate: tpl, formQuestion: tpl === 'custom' ? '' : this.templateText(tpl, cur || this.ZOOM[0]) });
+      },
+      setQuestion: e => this.setState({ formQuestion: e.target.value }),
+      setPromo: e => this.setState({ formPromo: e.target.checked }),
+      save: () => this.setState(s => ({ ready: { ...s.ready, [s.open]: true }, open: null })),
+      closeForm: () => this.setState({ open: null }),
+    };
+  }
+}
+</script>
+</body>
+</html>

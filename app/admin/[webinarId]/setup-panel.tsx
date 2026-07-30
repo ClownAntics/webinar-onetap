@@ -1,0 +1,216 @@
+"use client";
+
+import { useState } from "react";
+import CopyButton from "./copy-button";
+
+const cardStyle: React.CSSProperties = {
+  background: "#fff",
+  borderRadius: 16,
+  border: "1px solid #eee",
+  padding: 20,
+  display: "flex",
+  flexDirection: "column",
+  gap: 14,
+};
+const labelStyle: React.CSSProperties = { fontSize: 12.5, fontWeight: 700, color: "#555" };
+const inputStyle: React.CSSProperties = {
+  width: "100%",
+  padding: "10px 12px",
+  borderRadius: 10,
+  border: "1.5px solid #ddd",
+  fontSize: 14,
+};
+const helpStyle: React.CSSProperties = { fontSize: 11.5, color: "#999", marginTop: -8 };
+
+const TEMPLATES: Record<string, (t: string) => string> = {
+  "Product Demo": (t) => `What questions do you have about ${t}?`,
+  Webinar: (t) => `What kind of ${t} do you want to see?`,
+  Masterclass: (t) => `What specific topics would you like us to cover on ${t}?`,
+  Custom: () => "",
+};
+
+export interface SetupInitial {
+  webinarId: string;
+  display_title: string;
+  question_text: string;
+  agenda: string;
+  replay_url: string;
+  discount_code: string;
+  discount_expiry: string;
+  banner_url: string;
+  status: string;
+  replayEnabled: boolean;
+  omnisendLink: string;
+}
+
+export default function SetupPanel(props: SetupInitial) {
+  const [displayTitle, setDisplayTitle] = useState(props.display_title);
+  const [template, setTemplate] = useState("Custom");
+  const [questionText, setQuestionText] = useState(props.question_text);
+  const [agenda, setAgenda] = useState(props.agenda);
+  const [replayUrl, setReplayUrl] = useState(props.replay_url);
+  const [discountCode, setDiscountCode] = useState(props.discount_code);
+  const [discountExpiry, setDiscountExpiry] = useState(props.discount_expiry);
+  const [bannerUrl, setBannerUrl] = useState(props.banner_url);
+  const [saving, setSaving] = useState(false);
+  const [msg, setMsg] = useState("");
+
+  const readOnly = props.status === "COMPLETE";
+  const firstTime = props.status === "NEEDS_SETUP";
+
+  async function save() {
+    setSaving(true);
+    setMsg("");
+    const res = await fetch("/api/admin/webinar/save", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        webinarId: props.webinarId,
+        display_title: displayTitle,
+        question_text: questionText,
+        agenda,
+        replay_url: replayUrl,
+        discount_code: discountCode,
+        discount_expiry: discountExpiry || null,
+        banner_url: bannerUrl,
+      }),
+    });
+    const data = await res.json().catch(() => ({}));
+    setSaving(false);
+    if (res.ok) {
+      window.location.reload();
+    } else {
+      setMsg(data.error ?? "Save failed");
+    }
+  }
+
+  async function manual(action: "emailed_artist" | "designs_received") {
+    await fetch("/api/admin/webinar/status", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ webinarId: props.webinarId, action }),
+    });
+    window.location.reload();
+  }
+
+  if (readOnly) {
+    return (
+      <div style={cardStyle}>
+        <div style={{ fontWeight: 800, fontSize: 15 }}>Setup</div>
+        <div style={{ background: "#F0EEE9", borderRadius: 10, padding: 12, fontSize: 13, color: "#666" }}>
+          This webinar is COMPLETE — setup is locked. Post-webinar sends have fired.
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div style={cardStyle}>
+      <div style={{ fontWeight: 800, fontSize: 15 }}>Setup</div>
+
+      <div>
+        <div style={labelStyle}>Display title</div>
+        <input style={inputStyle} value={displayTitle} onChange={(e) => setDisplayTitle(e.target.value)} />
+      </div>
+
+      <div>
+        <div style={labelStyle}>Banner URL (upload to Supabase Storage → paste public URL)</div>
+        <input style={inputStyle} value={bannerUrl} onChange={(e) => setBannerUrl(e.target.value)} placeholder="https://…/webinar-banners/…" />
+      </div>
+
+      <div>
+        <div style={labelStyle}>Registration question</div>
+        <select
+          style={{ ...inputStyle, marginBottom: 8 }}
+          value={template}
+          onChange={(e) => {
+            const t = e.target.value;
+            setTemplate(t);
+            const fill = TEMPLATES[t]?.(displayTitle || "this topic");
+            if (t !== "Custom" && fill) setQuestionText(fill);
+          }}
+        >
+          {Object.keys(TEMPLATES).map((t) => (
+            <option key={t}>{t}</option>
+          ))}
+        </select>
+        <textarea style={{ ...inputStyle, minHeight: 60 }} value={questionText} onChange={(e) => setQuestionText(e.target.value)} />
+      </div>
+
+      <div>
+        <div style={labelStyle}>Agenda / tease copy</div>
+        <textarea style={{ ...inputStyle, minHeight: 60 }} value={agenda} onChange={(e) => setAgenda(e.target.value)} />
+        <div style={helpStyle}>Feeds the T-3 day tease email. Leave blank to skip.</div>
+      </div>
+
+      <div>
+        <div style={labelStyle}>Replay URL</div>
+        <input
+          style={{ ...inputStyle, ...(props.replayEnabled ? { borderColor: "#FCD700" } : {}) }}
+          value={replayUrl}
+          onChange={(e) => setReplayUrl(e.target.value)}
+          disabled={!props.replayEnabled}
+          placeholder={props.replayEnabled ? "Paste replay URL — fires post-webinar sends" : "Enabled after the webinar date"}
+        />
+        <div style={helpStyle}>
+          {props.replayEnabled ? "Pasting this fires the post-webinar sends." : "Enabled after the webinar date passes."}
+        </div>
+      </div>
+
+      <div style={{ display: "flex", gap: 12 }}>
+        <div style={{ flex: 1 }}>
+          <div style={labelStyle}>Discount code</div>
+          <input style={inputStyle} value={discountCode} onChange={(e) => setDiscountCode(e.target.value)} placeholder="WB-XXXX-15" />
+        </div>
+        <div style={{ flex: 1 }}>
+          <div style={labelStyle}>Discount expiry</div>
+          <input style={inputStyle} type="date" value={discountExpiry} onChange={(e) => setDiscountExpiry(e.target.value)} />
+        </div>
+      </div>
+
+      {msg && <div style={{ color: "#B41F24", fontSize: 13 }}>{msg}</div>}
+
+      <button
+        onClick={save}
+        disabled={saving}
+        style={{
+          height: 50,
+          borderRadius: 12,
+          border: "none",
+          background: "#FCD700",
+          color: "#2f302f",
+          fontWeight: 900,
+          fontSize: 15,
+          cursor: "pointer",
+          boxShadow: "0 4px 0 #b89b00",
+        }}
+      >
+        {saving ? "Saving…" : firstTime ? "Save — go live" : "Save changes"}
+      </button>
+
+      {!firstTime && (
+        <CopyButton text={props.omnisendLink} label="Copy link for Yumer" reveal bg="#0C84A4" />
+      )}
+
+      <div style={{ display: "flex", gap: 8, marginTop: 4 }}>
+        <button onClick={() => manual("emailed_artist")} style={smallBtn}>
+          Emailed artist ✓
+        </button>
+        <button onClick={() => manual("designs_received")} style={smallBtn}>
+          Designs received ✓
+        </button>
+      </div>
+    </div>
+  );
+}
+
+const smallBtn: React.CSSProperties = {
+  flex: 1,
+  height: 36,
+  borderRadius: 8,
+  border: "1.5px solid #ccc",
+  background: "#fff",
+  fontSize: 12.5,
+  fontWeight: 700,
+  cursor: "pointer",
+};

@@ -1,0 +1,346 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet data-dc-atomics>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+<script src="./image-slot.js"></script>
+<style>
+body{margin:0;background:#2F302F;font-family:Montserrat,system-ui,sans-serif}
+a{color:#5cbfdb;text-decoration:none}a:hover{color:#FCD700}
+input,textarea,button,select{font-family:Montserrat,system-ui,sans-serif}
+textarea::placeholder,input::placeholder{color:#9a9a9a;opacity:1}
+</style>
+</helmet>
+<div style="min-height:100vh;display:flex;flex-direction:column;background:#2F302F">
+<div style="display:flex;align-items:center;gap:14px;padding:12px 22px;border-bottom:1px solid rgba(255,255,255,.09)">
+  <img src="uploads/FP_Logo_144x144.jpg" alt="FacePaint" style="width:44px;height:44px;object-fit:contain;border-radius:50%">
+  <div style="font-size:16px;font-weight:800;color:#fff">Webinar Admin</div>
+  <div style="margin-left:auto;font-size:12px;color:rgba(255,255,255,.5)">webinars.facepaint.com/admin</div>
+</div>
+
+<!-- ================= LIST ================= -->
+<sc-if value="{{ isList }}" hint-placeholder-val="{{ true }}">
+  <div style="width:100%;max-width:820px;margin:0 auto;padding:26px 18px 64px;box-sizing:border-box;display:flex;flex-direction:column;gap:22px">
+    <sc-for list="{{ groups }}" as="g" hint-placeholder-count="2">
+      <div style="display:flex;flex-direction:column;gap:10px">
+        <div style="font-size:13px;font-weight:800;letter-spacing:1.5px;color:{{ g.color }}">{{ g.label }}</div>
+        <sc-for list="{{ g.items }}" as="w" hint-placeholder-count="2">
+          <div onClick="{{ w.openDetail }}" style="background:#fff;border-radius:16px;padding:14px 16px;display:flex;gap:14px;cursor:pointer;align-items:flex-start" style-hover="box-shadow:0 0 0 2px #FCD700">
+            <div style="flex:none;width:92px;height:52px;border-radius:8px;background:#E9E7E1;overflow:hidden;display:flex;align-items:center;justify-content:center">
+              <sc-if value="{{ w.hasBanner }}" hint-placeholder-val="{{ true }}"><img src="uploads/Zoom_Sea%20creatures%20Design.jpg" alt="" style="width:100%;height:100%;object-fit:cover"></sc-if>
+              <sc-if value="{{ w.noBanner }}" hint-placeholder-val="{{ false }}"><span style="font-size:10px;color:#999;font-weight:600">no banner</span></sc-if>
+            </div>
+            <div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:6px">
+              <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+                <div style="font-size:15px;font-weight:800;color:#2F302F">{{ w.title }}</div>
+                <div style="flex:none;font-size:10.5px;font-weight:800;letter-spacing:.5px;color:{{ w.pillFg }};background:{{ w.pillBg }};border-radius:999px;padding:4px 10px">{{ w.statusLabel }}</div>
+              </div>
+              <div style="font-size:12.5px;color:#666767;font-weight:600">{{ w.date }}</div>
+              <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;font-size:12px;color:#2F302F">
+                <span style="font-weight:800">👥 Registered: {{ w.reg }}</span>
+                <span style="background:#F0EEE9;border-radius:999px;padding:3px 9px;font-weight:600;color:#666767">SMS {{ w.sms }}</span>
+                <span style="background:#F0EEE9;border-radius:999px;padding:3px 9px;font-weight:600;color:#666767">Email {{ w.em }}</span>
+                <span style="background:#F0EEE9;border-radius:999px;padding:3px 9px;font-weight:600;color:#666767">Other {{ w.other }}</span>
+                <sc-if value="{{ w.past }}" hint-placeholder-val="{{ false }}">
+                  <span style="font-weight:800;color:#3c7d2b">✅ Attended: {{ w.attended }} ({{ w.showRate }}%)</span>
+                  <span style="color:#999;font-weight:600">No-shows: {{ w.noShows }}</span>
+                </sc-if>
+              </div>
+              <sc-if value="{{ w.hasHint }}" hint-placeholder-val="{{ false }}">
+                <div style="font-size:12px;color:#8a6d00;font-weight:700;background:#FFF6D6;border-radius:8px;padding:6px 10px;align-self:flex-start">→ {{ w.hint }}</div>
+              </sc-if>
+            </div>
+          </div>
+        </sc-for>
+      </div>
+    </sc-for>
+  </div>
+</sc-if>
+
+<!-- ================= DETAIL ================= -->
+<sc-if value="{{ isDetail }}" hint-placeholder-val="{{ false }}">
+  <div style="width:100%;max-width:1060px;margin:0 auto;padding:22px 18px 64px;box-sizing:border-box;display:flex;flex-direction:column;gap:16px">
+    <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap">
+      <a onClick="{{ back }}" style="cursor:pointer;font-size:13px;font-weight:700;color:#FCD700">← All webinars</a>
+      <div style="font-size:19px;font-weight:800;color:#fff">{{ dTitle }}</div>
+      <div style="flex:none;font-size:10.5px;font-weight:800;letter-spacing:.5px;color:{{ dPillFg }};background:{{ dPillBg }};border-radius:999px;padding:4px 10px">{{ dStatusLabel }}</div>
+      <div style="font-size:12.5px;color:rgba(255,255,255,.6);font-weight:600">{{ dDate }}</div>
+    </div>
+
+    <div style="display:flex;gap:16px;flex-wrap:wrap;align-items:flex-start">
+
+      <!-- A. Setup -->
+      <div style="flex:1;min-width:320px;background:#fff;border-radius:16px;padding:20px;display:flex;flex-direction:column;gap:15px;box-sizing:border-box">
+        <div style="font-size:13px;font-weight:800;letter-spacing:1px;color:#2F302F">SETUP</div>
+        <sc-if value="{{ dReadOnly }}" hint-placeholder-val="{{ false }}">
+          <div style="font-size:12.5px;color:#666767;background:#F0EEE9;border-radius:10px;padding:10px 12px;line-height:1.5">This webinar is complete — setup is read-only. Recap on the right.</div>
+        </sc-if>
+        <div style="display:flex;flex-direction:column;gap:5px">
+          <div style="font-size:11px;font-weight:800;letter-spacing:.5px;color:#666767">DISPLAY TITLE</div>
+          <input value="{{ fTitle }}" onChange="{{ setTitle }}" disabled="{{ dReadOnly }}" style="height:44px;border:1.5px solid #C8C8C8;border-radius:12px;padding:0 13px;font-size:14px;color:#2F302F;background:#fff" style-focus="outline:none;border-color:#0C84A4">
+        </div>
+        <div style="display:flex;flex-direction:column;gap:5px">
+          <div style="font-size:11px;font-weight:800;letter-spacing:.5px;color:#666767">BANNER</div>
+          <image-slot id="{{ dSlotId }}" radius="10" fit="contain" placeholder="Drop banner image (1280×400)" style="width:100%;height:96px"></image-slot>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:5px">
+          <div style="font-size:11px;font-weight:800;letter-spacing:.5px;color:#666767">REGISTRATION QUESTION</div>
+          <select value="{{ fTemplate }}" onChange="{{ setTemplate }}" disabled="{{ dReadOnly }}" style="height:44px;border:1.5px solid #C8C8C8;border-radius:12px;padding:0 10px;font-size:14px;background:#fff;color:#2F302F">
+            <option value="demo">Product Demo</option>
+            <option value="webinar">Webinar</option>
+            <option value="masterclass">Masterclass</option>
+            <option value="custom">Custom</option>
+          </select>
+          <textarea value="{{ fQuestion }}" onChange="{{ setQuestion }}" disabled="{{ dReadOnly }}" rows="2" style="border:1.5px solid #C8C8C8;border-radius:12px;padding:10px 13px;font-size:14px;background:#fff;resize:none;color:#2F302F" style-focus="outline:none;border-color:#0C84A4"></textarea>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:5px">
+          <div style="font-size:11px;font-weight:800;letter-spacing:.5px;color:#666767">AGENDA / TEASE COPY</div>
+          <textarea value="{{ fAgenda }}" onChange="{{ setAgenda }}" disabled="{{ dReadOnly }}" rows="3" placeholder="e.g. Yasmeen is painting a jellyfish crown, a shark bite, and a full mermaid look…" style="border:1.5px solid #C8C8C8;border-radius:12px;padding:10px 13px;font-size:14px;background:#fff;resize:none;color:#2F302F" style-focus="outline:none;border-color:#0C84A4"></textarea>
+          <div style="font-size:11px;color:#999">Feeds the T-3 day tease email. Leave blank to skip.</div>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:5px">
+          <div style="font-size:11px;font-weight:800;letter-spacing:.5px;color:{{ dReplayLabelColor }}">REPLAY URL</div>
+          <input value="{{ fReplay }}" onChange="{{ setReplay }}" disabled="{{ dReplayDisabled }}" placeholder="{{ dReplayPlaceholder }}" style="height:44px;border:1.5px solid {{ dReplayBorder }};border-radius:12px;padding:0 13px;font-size:14px;color:#2F302F;background:{{ dReplayBg }}" style-focus="outline:none;border-color:#0C84A4">
+          <div style="font-size:11px;color:#999">Pasting this fires the post-webinar sends.</div>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:5px">
+          <div style="font-size:11px;font-weight:800;letter-spacing:.5px;color:#666767">DISCOUNT CODE</div>
+          <input value="{{ fCode }}" onChange="{{ setCode }}" disabled="{{ dReadOnly }}" placeholder="e.g. COREY20" style="height:44px;border:1.5px solid #C8C8C8;border-radius:12px;padding:0 13px;font-size:14px;color:#2F302F;background:#fff" style-focus="outline:none;border-color:#0C84A4">
+        </div>
+        <sc-if value="{{ dEditable }}" hint-placeholder-val="{{ true }}">
+          <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
+            <button onClick="{{ save }}" style="height:46px;padding:0 24px;border:none;border-radius:12px;background:#FCD700;color:#2F302F;font-size:14px;font-weight:900;cursor:pointer;box-shadow:0 3px 0 #b89b00" style-active="transform:translateY(2px);box-shadow:0 1px 0 #b89b00" style-hover="background:#FFCB39">{{ saveLabel }}</button>
+            <sc-if value="{{ dSaved }}" hint-placeholder-val="{{ false }}">
+              <button onClick="{{ copyLink }}" style="height:46px;padding:0 18px;border:none;border-radius:12px;background:{{ copyBg }};color:#fff;font-size:13px;font-weight:700;cursor:pointer" style-hover="opacity:.9">{{ copyLabel }}</button>
+            </sc-if>
+          </div>
+          <div style="display:flex;gap:8px;flex-wrap:wrap">
+            <button onClick="{{ markEmailed }}" style="height:36px;padding:0 14px;border:1.5px solid #C8C8C8;border-radius:10px;background:#fff;color:#2F302F;font-size:12px;font-weight:700;cursor:pointer" style-hover="border-color:#2F302F">Emailed artist ✓</button>
+            <button onClick="{{ markDesigns }}" style="height:36px;padding:0 14px;border:1.5px solid #C8C8C8;border-radius:10px;background:#fff;color:#2F302F;font-size:12px;font-weight:700;cursor:pointer" style-hover="border-color:#2F302F">Designs received ✓</button>
+          </div>
+        </sc-if>
+        <sc-if value="{{ showLink }}" hint-placeholder-val="{{ false }}">
+          <div style="background:#F0EEE9;border-radius:10px;padding:10px 12px;font-family:ui-monospace,Menlo,monospace;font-size:11.5px;color:#0C84A4;word-break:break-all">{{ dLink }}</div>
+        </sc-if>
+      </div>
+
+      <div style="flex:1;min-width:320px;display:flex;flex-direction:column;gap:16px">
+        <!-- B. Stats -->
+        <div style="background:#fff;border-radius:16px;padding:20px;display:flex;flex-direction:column;gap:16px;box-sizing:border-box">
+          <div style="font-size:13px;font-weight:800;letter-spacing:1px;color:#2F302F">STATS</div>
+          <div style="display:flex;gap:10px">
+            <div style="flex:1;background:#F0EEE9;border-radius:12px;padding:12px;text-align:center"><div style="font-size:26px;font-weight:900;color:#2F302F">{{ dReg }}</div><div style="font-size:11px;font-weight:700;color:#666767">REGISTERED</div></div>
+            <sc-if value="{{ dPast }}" hint-placeholder-val="{{ false }}">
+              <div style="flex:1;background:#E8F5E1;border-radius:12px;padding:12px;text-align:center"><div style="font-size:26px;font-weight:900;color:#3c7d2b">{{ dAttended }}</div><div style="font-size:11px;font-weight:700;color:#3c7d2b">ATTENDED</div></div>
+              <div style="flex:1;background:#F0EEE9;border-radius:12px;padding:12px;text-align:center"><div style="font-size:26px;font-weight:900;color:#2F302F">{{ dShowRate }}%</div><div style="font-size:11px;font-weight:700;color:#666767">SHOW RATE</div></div>
+            </sc-if>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:6px">
+            <div style="font-size:11px;font-weight:800;letter-spacing:.5px;color:#666767">BY SOURCE</div>
+            <div style="display:flex;height:18px;border-radius:6px;overflow:hidden">
+              <div style="width:{{ dSmsPct }};background:#0C84A4" title="SMS"></div>
+              <div style="width:{{ dEmPct }};background:#54AF3E" title="Email"></div>
+              <div style="width:{{ dOtherPct }};background:#C8C8C8" title="Other"></div>
+            </div>
+            <div style="display:flex;gap:12px;font-size:11.5px;font-weight:600;color:#666767">
+              <span><span style="display:inline-block;width:9px;height:9px;border-radius:2px;background:#0C84A4;margin-right:4px"></span>SMS {{ dSms }}</span>
+              <span><span style="display:inline-block;width:9px;height:9px;border-radius:2px;background:#54AF3E;margin-right:4px"></span>Email {{ dEm }}</span>
+              <span><span style="display:inline-block;width:9px;height:9px;border-radius:2px;background:#C8C8C8;margin-right:4px"></span>Other {{ dOther }}</span>
+            </div>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:6px">
+            <div style="font-size:11px;font-weight:800;letter-spacing:.5px;color:#666767">REGISTRATIONS PER DAY</div>
+            <div style="display:flex;align-items:flex-end;gap:3px;height:44px">
+              <sc-for list="{{ dSpark }}" as="b" hint-placeholder-count="10">
+                <div style="flex:1;height:{{ b.h }};background:#FCD700;border-radius:2px 2px 0 0;min-height:2px"></div>
+              </sc-for>
+            </div>
+            <div style="display:flex;justify-content:space-between;font-size:10.5px;color:#999;font-weight:600"><span>invite sent</span><span>today</span></div>
+          </div>
+          <sc-if value="{{ dComplete }}" hint-placeholder-val="{{ false }}">
+            <div style="background:#E8F5E1;border-radius:12px;padding:12px 14px;display:flex;flex-direction:column;gap:4px">
+              <div style="font-size:12px;font-weight:800;color:#3c7d2b">SENDS COMPLETE</div>
+              <div style="font-size:12.5px;color:#2F302F;font-weight:600">Attendee code sent to {{ dAttended }} · Replay sent to {{ dNoShows }}</div>
+              <div style="font-size:11px;color:#999">Fired {{ dSendTs }}</div>
+            </div>
+            <div style="display:flex;gap:14px;font-size:12.5px;font-weight:700"><a href="#" onClick="{{ noop }}">Replay URL ↗</a><a href="#" onClick="{{ noop }}">Zoom report ↗</a></div>
+            <div style="background:#F0EEE9;border-radius:12px;padding:12px 14px;font-size:12px;color:#999;font-weight:600">Revenue: coming soon</div>
+          </sc-if>
+        </div>
+
+        <!-- C. Answers -->
+        <div style="background:#fff;border-radius:16px;padding:20px;display:flex;flex-direction:column;gap:12px;box-sizing:border-box">
+          <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+            <div style="font-size:13px;font-weight:800;letter-spacing:1px;color:#2F302F">WHAT CUSTOMERS WANT TO SEE ({{ dAnswerCount }})</div>
+            <sc-if value="{{ dHasAnswers }}" hint-placeholder-val="{{ true }}">
+              <button onClick="{{ copyAnswers }}" style="margin-left:auto;height:34px;padding:0 13px;border:1.5px solid #C8C8C8;border-radius:10px;background:#fff;color:#2F302F;font-size:12px;font-weight:700;cursor:pointer" style-hover="border-color:#2F302F">{{ copyAnswersLabel }}</button>
+            </sc-if>
+          </div>
+          <sc-if value="{{ dHasAnswers }}" hint-placeholder-val="{{ true }}">
+            <div style="display:flex;flex-direction:column;gap:8px;max-height:260px;overflow-y:auto">
+              <sc-for list="{{ dAnswers }}" as="a" hint-placeholder-count="3">
+                <div style="background:#F5F4F0;border-radius:10px;padding:9px 12px;font-size:13px;color:#2F302F;line-height:1.45"><span style="font-weight:700;color:#666767">{{ a.email }}</span> — "{{ a.text }}"</div>
+              </sc-for>
+            </div>
+          </sc-if>
+          <sc-if value="{{ dNoAnswers }}" hint-placeholder-val="{{ false }}">
+            <div style="font-size:13px;color:#999;background:#F5F4F0;border-radius:10px;padding:14px;text-align:center">Answers appear here as people register.</div>
+          </sc-if>
+        </div>
+      </div>
+    </div>
+  </div>
+</sc-if>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{}">
+class Component extends DCLogic {
+  STATUS = {
+    needs_setup:    { label: 'NEEDS SETUP',        bg: '#FBE3E4', fg: '#B41F24', attn: true },
+    awaiting_answers:{ label: 'AWAITING ANSWERS',  bg: '#E9E9EB', fg: '#666767', attn: false },
+    email_artist:   { label: 'EMAIL ARTIST',       bg: '#FFF3C4', fg: '#8a6d00', attn: true },
+    awaiting_artist:{ label: 'AWAITING ARTIST',    bg: '#E9E9EB', fg: '#666767', attn: false },
+    needs_agenda:   { label: 'NEEDS AGENDA',       bg: '#FFF3C4', fg: '#8a6d00', attn: true },
+    ready:          { label: 'READY',              bg: '#E8F5E1', fg: '#3c7d2b', attn: false },
+    awaiting_blog:  { label: 'AWAITING BLOG POST', bg: '#FFF3C4', fg: '#8a6d00', attn: true },
+    complete:       { label: 'COMPLETE',           bg: '#2F5D22', fg: '#fff',    attn: false },
+  };
+  DATA = [
+    { id: 'w1', title: 'Vivid Glitter Product Demo', date: 'Thu, Sep 10 · 4:00 PM ET', status: 'needs_setup', past: false, banner: false, reg: 0, sms: 0, em: 0, other: 0, attended: 0,
+      hint: 'Set up title, banner, and question to go live', kind: 'demo', topic: 'glitter', answers: [], spark: [0,0,0,0,0,0,0,0,0,0], saved: false },
+    { id: 'w2', title: 'Speed Painting Eye Designs Masterclass', date: 'Mon, Jul 20 · 4:00 PM ET', status: 'awaiting_blog', past: true, banner: false, reg: 143, sms: 82, em: 55, other: 6, attended: 58,
+      hint: 'Create blog post + paste replay URL', kind: 'masterclass', topic: 'eye designs', saved: true,
+      answers: [
+        { email: 'mia.t@…', text: 'Cut crease with glitter please!' },
+        { email: 'brandy@…', text: 'How to keep lines crisp around the brow' },
+        { email: 'kelseyfx@…', text: 'Drag-level lashes with paint only' },
+      ], spark: [2,5,9,14,11,18,22,16,12,8,14,12] },
+    { id: 'w3', title: 'Sea Creature Designs with Yasmeen Hart', date: 'Mon, Aug 3 · 4:00 PM ET', status: 'ready', past: false, banner: true, reg: 157, sms: 89, em: 61, other: 7, attended: 0,
+      hint: '', kind: 'webinar', topic: 'sea creatures', saved: true,
+      answers: [
+        { email: 'sarah@…', text: 'More one-stroke flower designs!' },
+        { email: 'jenn.b@…', text: 'Octopus tentacles wrapping the eye' },
+        { email: 'paintedbykat@…', text: 'A quick shark for boys parties' },
+        { email: 'lucy.m@…', text: 'Mermaid scales that actually shimmer' },
+        { email: 'facesbyamy@…', text: 'Jellyfish crown!!' },
+      ], spark: [3,7,12,18,15,22,28,19,14,10,6,3] },
+    { id: 'w4', title: 'One-Stroke Flowers Webinar', date: 'Mon, Aug 24 · 4:00 PM ET', status: 'awaiting_answers', past: false, banner: false, reg: 41, sms: 26, em: 13, other: 2, attended: 0,
+      hint: '', kind: 'webinar', topic: 'one-stroke flowers', saved: true,
+      answers: [
+        { email: 'roseyfaces@…', text: 'Roses on a cheek in under a minute' },
+        { email: 'tam@…', text: 'Which brushes for wide petals?' },
+      ], spark: [4,9,13,8,5,2,0,0,0,0,0,0] },
+    { id: 'w5', title: 'Rainbow Techniques Webinar', date: 'Mon, Jun 22 · 4:00 PM ET', status: 'complete', past: true, banner: false, reg: 138, sms: 79, em: 52, other: 7, attended: 61,
+      hint: '', kind: 'webinar', topic: 'rainbow designs', saved: true, sendTs: 'Jun 23, 9:00 AM ET',
+      answers: [ { email: 'kim.p@…', text: 'Rainbow without muddy blends' } ], spark: [5,8,14,19,12,20,25,15,11,6,2,1] },
+    { id: 'w6', title: 'Bling & Gems Product Demo', date: 'Mon, Jun 8 · 4:00 PM ET', status: 'complete', past: true, banner: false, reg: 122, sms: 70, em: 46, other: 6, attended: 48,
+      hint: '', kind: 'demo', topic: 'gems', saved: true, sendTs: 'Jun 9, 9:00 AM ET',
+      answers: [ { email: 'gemma@…', text: 'Best glue for sensitive skin?' } ], spark: [6,10,12,16,9,14,18,12,8,4,2,1] },
+  ];
+  state = { view: 'list', copied: false, copiedAnswers: false, statusOverride: {}, savedOverride: {},
+    fTitle: '', fTemplate: 'webinar', fQuestion: '', fAgenda: '', fReplay: '', fCode: '' };
+  q(tpl, w) {
+    if (tpl === 'demo') return 'What questions do you have about ' + w.topic + '?';
+    if (tpl === 'masterclass') return 'What specific topics would you like us to cover on ' + w.topic + '?';
+    if (tpl === 'webinar') return 'What kind of ' + w.topic + ' do you want to see?';
+    return '';
+  }
+  statusOf(w) { return this.state.statusOverride[w.id] || w.status; }
+  open(w) {
+    this.setState({ view: w.id, copied: false, copiedAnswers: false,
+      fTitle: w.title, fTemplate: w.kind, fQuestion: this.q(w.kind, w),
+      fAgenda: '', fReplay: '', fCode: '' });
+  }
+  renderVals() {
+    const s = this.state;
+    const decorate = w => {
+      const st = this.STATUS[this.statusOf(w)];
+      return { ...w, statusLabel: st.label, pillBg: st.bg, pillFg: st.fg,
+        hasBanner: w.banner, noBanner: !w.banner,
+        showRate: w.reg ? Math.round(w.attended / w.reg * 100) : 0,
+        noShows: w.reg - w.attended,
+        hasHint: !!w.hint, openDetail: () => this.open(w) };
+    };
+    const all = this.DATA.map(decorate);
+    const attn = all.filter(w => this.STATUS[this.statusOf(w)].attn);
+    const upcoming = all.filter(w => !this.STATUS[this.statusOf(w)].attn && !w.past);
+    const past = all.filter(w => !this.STATUS[this.statusOf(w)].attn && w.past);
+    const groups = [
+      attn.length && { label: 'NEEDS YOUR ATTENTION', color: '#FCD700', items: attn },
+      upcoming.length && { label: 'UPCOMING', color: 'rgba(255,255,255,.55)', items: upcoming },
+      past.length && { label: 'PAST', color: 'rgba(255,255,255,.55)', items: past },
+    ].filter(Boolean);
+
+    const w = this.DATA.find(x => x.id === s.view);
+    const v = { isList: s.view === 'list', isDetail: !!w, groups, back: () => this.setState({ view: 'list' }), noop: e => e.preventDefault() };
+    if (!w) return v;
+
+    const stKey = this.statusOf(w);
+    const st = this.STATUS[stKey];
+    const saved = s.savedOverride[w.id] ?? w.saved;
+    const readOnly = stKey === 'complete';
+    const replayEnabled = w.past && !readOnly;
+    const max = Math.max(...w.spark, 1);
+    Object.assign(v, {
+      dTitle: s.fTitle || w.title, dDate: w.date, dStatusLabel: st.label, dPillBg: st.bg, dPillFg: st.fg,
+      dReadOnly: readOnly, dEditable: !readOnly, dSaved: saved, dPast: w.past, dComplete: stKey === 'complete',
+      dSlotId: 'banner-' + w.id, dLink: 'https://webinars.facepaint.com/w/' + w.id + '?e=[[contact.email]]&fn=[[contact.firstName]]&src=sms',
+      dReg: w.reg, dAttended: w.attended, dNoShows: w.reg - w.attended,
+      dShowRate: w.reg ? Math.round(w.attended / w.reg * 100) : 0,
+      dSms: w.sms, dEm: w.em, dOther: w.other,
+      dSmsPct: (w.reg ? w.sms / w.reg * 100 : 33) + '%',
+      dEmPct: (w.reg ? w.em / w.reg * 100 : 33) + '%',
+      dOtherPct: (w.reg ? w.other / w.reg * 100 : 34) + '%',
+      dSpark: w.spark.map(n => ({ h: Math.round(n / max * 100) + '%' })),
+      dSendTs: w.sendTs || '',
+      dAnswers: w.answers, dAnswerCount: w.answers.length,
+      dHasAnswers: w.answers.length > 0, dNoAnswers: w.answers.length === 0,
+      dReplayDisabled: !replayEnabled,
+      dReplayLabelColor: stKey === 'awaiting_blog' ? '#8a6d00' : '#666767',
+      dReplayBorder: stKey === 'awaiting_blog' ? '#FCD700' : '#C8C8C8',
+      dReplayBg: replayEnabled ? '#fff' : '#F5F4F0',
+      dReplayPlaceholder: replayEnabled ? 'https://facepaint.com/blogs/…' : 'Enabled after the webinar date',
+      fTitle: s.fTitle, fTemplate: s.fTemplate, fQuestion: s.fQuestion, fAgenda: s.fAgenda, fReplay: s.fReplay, fCode: s.fCode,
+      setTitle: e => this.setState({ fTitle: e.target.value }),
+      setTemplate: e => { const t = e.target.value; this.setState({ fTemplate: t, fQuestion: this.q(t, w) }); },
+      setQuestion: e => this.setState({ fQuestion: e.target.value }),
+      setAgenda: e => this.setState({ fAgenda: e.target.value }),
+      setReplay: e => this.setState({ fReplay: e.target.value }),
+      setCode: e => this.setState({ fCode: e.target.value }),
+      saveLabel: saved ? 'Save changes' : 'Save — go live',
+      save: () => {
+        const so = { ...s.statusOverride };
+        if (stKey === 'needs_setup') so[w.id] = 'awaiting_answers';
+        if (stKey === 'needs_agenda' && s.fAgenda) so[w.id] = 'ready';
+        if (stKey === 'awaiting_blog' && s.fReplay) so[w.id] = 'complete';
+        this.setState({ savedOverride: { ...s.savedOverride, [w.id]: true }, statusOverride: so });
+      },
+      markEmailed: () => this.setState({ statusOverride: { ...s.statusOverride, [w.id]: 'awaiting_artist' } }),
+      markDesigns: () => this.setState({ statusOverride: { ...s.statusOverride, [w.id]: 'needs_agenda' } }),
+      copyBg: s.copied ? '#54AF3E' : '#0C84A4',
+      copyLabel: s.copied ? 'Copied!' : 'Copy link for Yumer',
+      showLink: s.copied,
+      copyLink: () => {
+        try { navigator.clipboard.writeText(v.dLink); } catch (e) {}
+        this.setState({ copied: true });
+      },
+      copyAnswersLabel: s.copiedAnswers ? 'Copied!' : 'Copy all answers',
+      copyAnswers: () => {
+        try { navigator.clipboard.writeText(w.answers.map(a => a.email + ' — ' + a.text).join('\n')); } catch (e) {}
+        this.setState({ copiedAnswers: true });
+        clearTimeout(this.ct); this.ct = setTimeout(() => this.setState({ copiedAnswers: false }), 2500);
+      },
+    });
+    return v;
+  }
+}
+</script>
+</body>
+</html>
