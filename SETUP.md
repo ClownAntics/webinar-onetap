@@ -21,7 +21,7 @@ skipped (with console warnings) so you can develop pages incrementally.
 | Route | What it does | State |
 |---|---|---|
 | `/w/[webinarId]` | One-tap registration (form / loading / success / error / missing-email) | Built (tokens wired; desktop layout minimal) |
-| `/admin` | Passcode gate → webinar list from Zoom + Trends link | Built (list only) |
+| `/admin` | Passcode gate → dashboard: status pills, stat chips, grouped Needs-attention/Upcoming/Past | **Built** |
 | `/admin/[webinarId]` | Detail: setup + status lifecycle, stats, 7-day revenue, answers | **Built** |
 | `/admin/trends` | Owner Trends dashboard — 5 charts over time + CSV (§4a) | **Built** |
 | `POST /api/admin/webinar/save` | Save setup, advance status, fire replay-save sends | **Built** |
@@ -94,6 +94,5 @@ replay URL → COMPLETE (fires attendee/no-show sends, idempotent via
 
 - `cron` tease/reminder sends (attendance-sync after end_time + replay-save trigger are wired).
 - Banner **file upload** to Supabase Storage (the field currently takes a pasted public URL).
-- Dashboard cards: status pills + live stat chips (list links to detail already).
 - Pixel-perfect desktop registration layout + "Not you?" inline panel.
 - Optional: persist `webinar_summary` (recompute job) instead of live compute.
