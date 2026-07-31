@@ -82,3 +82,16 @@ create table if not exists webinar_summary (
   active_revenue             numeric,
   computed_at                timestamptz not null default now()
 );
+
+-- Row Level Security: enable on every table, add NO policies. The app reaches
+-- these tables only server-side via the service_role key (which bypasses RLS),
+-- so enabling RLS with no policies keeps full app access while blocking the
+-- public anon/authenticated roles from the auto-generated REST API. This is
+-- required because the anon key is public (shipped in the browser bundle) and
+-- these tables hold registrant emails.
+alter table webinar_config     enable row level security;
+alter table webinar_reg_events enable row level security;
+alter table webinar_attendance enable row level security;
+alter table webinar_send_log   enable row level security;
+alter table webinar_optouts    enable row level security;
+alter table webinar_summary    enable row level security;
