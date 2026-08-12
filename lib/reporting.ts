@@ -65,30 +65,80 @@ export interface WebinarInput {
   ticketRevenue: number;
 }
 
-const isMasterclassTopic = (topic: string | null | undefined) => /masterclass/i.test(topic ?? "");
+const isMasterclassTopic = (topic: string | null | undefined) => /master ?class/i.test(topic ?? "");
 
-/** Normalize a topic/product description for matching (whitespace + case). */
-const normTopic = (s: string | null | undefined) =>
-  (s ?? "").toLowerCase().replace(/\s+/g, " ").trim();
+export interface MasterclassSale {
+  description: string;
+  tickets: number;
+  revenue: number;
+  /** ISO date parsed from the description's YYYYMMDD prefix, if present. */
+  date: string | null;
+  matched: boolean;
+}
 
 /**
- * Ticket sales per masterclass from the TeamDesk mirror, keyed by normalized
- * product description — which matches the raw Zoom topic (verified against the
- * TD "Annual SKU Unit Sales Table" report). Empty map if the SQL function
+ * Order-insensitive matching key: TeamDesk descriptions and Zoom topics name
+ * the same class with the words swapped around ("20260611 Special FX (Dutch
+ * Bihary) Masterclass" vs "Dutch Bihary (Special FX) Masterclass") — so strip
+ * the date prefix, drop punctuation, and sort the words.
+ */
+const topicKey = (s: string | null | undefined) =>
+  (s ?? "")
+    .toLowerCase()
+    .replace(/^\s*\d{6,8}\s*/, "")
+    .replace(/master\s+class/g, "masterclass")
+    .replace(/[^a-z0-9 ]+/g, " ")
+    .split(/\s+/)
+    .filter(Boolean)
+    .sort()
+    .join(" ");
+
+const descDate = (s: string): string | null => {
+  const m = s.match(/^\s*(\d{4})(\d{2})(\d{2})/);
+  return m ? `${m[1]}-${m[2]}-${m[3]}` : null;
+};
+
+/**
+ * Ticket sales per masterclass from the TeamDesk mirror (verified against the
+ * TD "Annual SKU Unit Sales Table" report). Empty list if the SQL function
  * (migration 0004) isn't installed yet — reports degrade to $0 tickets.
  */
-export async function loadMasterclassSales(): Promise<Map<string, { tickets: number; revenue: number }>> {
-  const map = new Map<string, { tickets: number; revenue: number }>();
+export async function loadMasterclassSales(): Promise<MasterclassSale[]> {
   try {
     const { data, error } = await salesSupabase().rpc("webinar_masterclass_sales");
     if (error) throw new Error(error.message);
-    for (const r of (data ?? []) as { description: string; tickets: number; revenue: number }[]) {
-      map.set(normTopic(r.description), { tickets: Number(r.tickets ?? 0), revenue: Number(r.revenue ?? 0) });
-    }
+    return ((data ?? []) as { description: string; tickets: number; revenue: number }[]).map((r) => ({
+      description: r.description,
+      tickets: Number(r.tickets ?? 0),
+      revenue: Number(r.revenue ?? 0),
+      date: descDate(r.description),
+      matched: false,
+    }));
   } catch (err) {
     console.warn("masterclass sales unavailable:", err instanceof Error ? err.message : err);
+    return [];
   }
-  return map;
+}
+
+/**
+ * Find the ticket-sales row for a webinar: same word-set key, and when several
+ * runs of the same class exist, the one dated within 3 days of the webinar.
+ */
+export function matchMasterclassSale(
+  sales: MasterclassSale[],
+  topic: string | null,
+  webinarDate: string | null
+): MasterclassSale | undefined {
+  const key = topicKey(topic);
+  if (!key) return undefined;
+  const candidates = sales.filter((s) => topicKey(s.description) === key);
+  if (candidates.length === 0) return undefined;
+  if (candidates.length === 1 || !webinarDate) return candidates[0];
+  const wd = new Date(webinarDate).getTime();
+  return (
+    candidates.find((c) => c.date && Math.abs(new Date(c.date).getTime() - wd) < 3 * DAY_MS) ??
+    candidates[0]
+  );
 }
 
 /**
@@ -331,16 +381,22 @@ interface ConfigRow {
   brand: Brand | null;
 }
 
-/** Build the per-webinar input fields that come from config + ticket sales. */
-function classify(cfg: ConfigRow, mcSales: Map<string, { tickets: number; revenue: number }>) {
+/** Build the per-webinar input fields that come from config + ticket sales.
+ *  Marks the matched sale so callers can report leftovers (classes that sold
+ *  tickets but have no webinar record in the app). */
+function classify(cfg: ConfigRow, mcSales: MasterclassSale[]) {
   const raw = cfg.zoom_topic ?? cfg.display_title ?? "";
   const isMasterclass = isMasterclassTopic(raw) || isMasterclassTopic(cfg.display_title);
-  const sales = isMasterclass ? mcSales.get(normTopic(raw)) : undefined;
+  const sale = isMasterclass
+    ? matchMasterclassSale(mcSales, raw, cfg.start_time) ??
+      matchMasterclassSale(mcSales, cfg.display_title, cfg.start_time)
+    : undefined;
+  if (sale) sale.matched = true;
   return {
     brand: (cfg.brand ?? "facepaint") as Brand,
     isMasterclass,
-    tickets: sales?.tickets ?? 0,
-    ticketRevenue: sales?.revenue ?? 0,
+    tickets: sale?.tickets ?? 0,
+    ticketRevenue: sale?.revenue ?? 0,
   };
 }
 
@@ -352,6 +408,8 @@ function classify(cfg: ConfigRow, mcSales: Map<string, { tickets: number; revenu
 export async function computeAllWebinarMetrics(): Promise<{
   metrics: WebinarMetrics[];
   skipped: number;
+  /** Masterclasses that sold tickets but have no webinar record in the app. */
+  unmatchedSales: MasterclassSale[];
 }> {
   const app = appSupabase();
 
@@ -407,7 +465,8 @@ export async function computeAllWebinarMetrics(): Promise<{
   }
 
   metrics.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
-  return { metrics, skipped };
+  const unmatchedSales = mcSales.filter((s) => !s.matched);
+  return { metrics, skipped, unmatchedSales };
 }
 
 /**
@@ -439,7 +498,7 @@ export async function computeOneWebinarMetrics(
   const needsMc = isMasterclassTopic(cfg.zoom_topic) || isMasterclassTopic(cfg.display_title);
   const [sales, mcSales] = await Promise.all([
     loadSalesForEmails(rows.map((r) => r.email)),
-    needsMc ? loadMasterclassSales() : Promise.resolve(new Map<string, { tickets: number; revenue: number }>()),
+    needsMc ? loadMasterclassSales() : Promise.resolve([] as MasterclassSale[]),
   ]);
   return computeWebinarMetrics(
     {

@@ -5,6 +5,7 @@ import DashboardTabs, { type CardData } from "./dashboard-tabs";
 import { listWebinars, getTrackingSources, type TrackingSource } from "@/lib/zoom";
 import { appSupabase, fetchAllRows } from "@/lib/supabase";
 import { autoAdjust, isActionable } from "@/lib/status";
+import type { Brand } from "@/lib/brands";
 import type { WebinarStatus } from "@/lib/types";
 
 export const dynamic = "force-dynamic";
@@ -24,7 +25,7 @@ async function loadDashboard(): Promise<{ cards: CardData[]; zoomError?: string;
   }
 
   // Config (status/banner/title) + attendance + answer-count from the app DB.
-  const configs = new Map<string, { display_title: string | null; zoom_topic: string | null; banner_url: string | null; status: WebinarStatus | null; start_time: string | null }>();
+  const configs = new Map<string, { display_title: string | null; zoom_topic: string | null; banner_url: string | null; status: WebinarStatus | null; start_time: string | null; brand: Brand | null }>();
   const attended = new Map<string, number>();
   const answers = new Map<string, number>();
   const revenue = new Map<string, number>();
@@ -32,8 +33,8 @@ async function loadDashboard(): Promise<{ cards: CardData[]; zoomError?: string;
   try {
     const sb = appSupabase();
     const [cfgRows, attRows, ansRows] = await Promise.all([
-      fetchAllRows<{ webinar_id: string; display_title: string | null; zoom_topic: string | null; banner_url: string | null; status: WebinarStatus | null; start_time: string | null }>(
-        (from, to) => sb.from("webinar_config").select("webinar_id, display_title, zoom_topic, banner_url, status, start_time").order("webinar_id").range(from, to)
+      fetchAllRows<{ webinar_id: string; display_title: string | null; zoom_topic: string | null; banner_url: string | null; status: WebinarStatus | null; start_time: string | null; brand: Brand | null }>(
+        (from, to) => sb.from("webinar_config").select("webinar_id, display_title, zoom_topic, banner_url, status, start_time, brand").order("webinar_id").range(from, to)
       ),
       fetchAllRows<{ webinar_id: string; attended: boolean }>((from, to) =>
         sb.from("webinar_attendance").select("webinar_id, attended").order("id").range(from, to)
@@ -63,18 +64,29 @@ async function loadDashboard(): Promise<{ cards: CardData[]; zoomError?: string;
   const startOf = (id: string) => configs.get(id)?.start_time ?? zoom.find((w) => w.id === id)?.start_time ?? null;
 
   // Real registration counts + source breakdown from Zoom, for recent/upcoming only.
+  // Small pool + one retry: a concurrent burst gets rate-limited by Zoom, and a
+  // failed fetch must read as "unknown" (null), never as 0 registered.
   const statsIds = ids.filter((id) => {
     const st = startOf(id);
     return !st || new Date(st).getTime() > now - RECENT_MS;
   });
-  const statsEntries = await Promise.all(
-    statsIds.map((id) =>
-      getTrackingSources(id)
-        .then((src) => [id, src] as const)
-        .catch(() => [id, [] as TrackingSource[]] as const)
-    )
-  );
-  const statsById = new Map<string, TrackingSource[]>(statsEntries);
+  const statsById = new Map<string, TrackingSource[] | null>();
+  const POOL = 4;
+  for (let i = 0; i < statsIds.length; i += POOL) {
+    await Promise.all(
+      statsIds.slice(i, i + POOL).map(async (id) => {
+        try {
+          statsById.set(id, await getTrackingSources(id));
+        } catch {
+          try {
+            statsById.set(id, await getTrackingSources(id));
+          } catch {
+            statsById.set(id, null);
+          }
+        }
+      })
+    );
+  }
 
   const cards: CardData[] = ids.map((id) => {
     const c = configs.get(id);
@@ -83,13 +95,16 @@ async function loadDashboard(): Promise<{ cards: CardData[]; zoomError?: string;
     const endPassed = startTime ? now > new Date(startTime).getTime() : false;
     const stored: WebinarStatus = c?.status ?? "NEEDS_SETUP";
     const status = autoAdjust(stored, { answersCount: answers.get(id) ?? 0, endPassed });
-    const src = statsById.get(id);
+    const src = statsById.get(id) ?? null;
+    const topicRaw = c?.zoom_topic ?? c?.display_title ?? z?.topic ?? "";
     return {
       id,
       title: c?.display_title ?? c?.zoom_topic ?? z?.topic ?? id,
       startTime,
       bannerUrl: c?.banner_url ?? null,
       status,
+      brand: c?.brand ?? "facepaint",
+      isMasterclass: /master ?class/i.test(topicRaw),
       registered: src ? src.reduce((s, x) => s + x.registration_count, 0) : null,
       // Keep all channels (incl. SMS at 0), highest first.
       sources: (src ?? [])

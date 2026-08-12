@@ -1,7 +1,7 @@
 import Link from "next/link";
 import LoginGate from "../login-gate";
 import { getEmployee } from "@/lib/auth";
-import { computeAllWebinarMetrics } from "@/lib/reporting";
+import { computeAllWebinarMetrics, type MasterclassSale } from "@/lib/reporting";
 import { BRAND_LABELS } from "@/lib/brands";
 import type { WebinarMetrics } from "@/lib/types";
 import LineChart, { type Point } from "./line-chart";
@@ -38,19 +38,21 @@ export default async function TrendsPage({
 
   let all: WebinarMetrics[] = [];
   let skipped = 0;
+  let unmatchedSales: MasterclassSale[] = [];
   let error: string | undefined;
   try {
     const r = await computeAllWebinarMetrics();
     all = r.metrics;
     skipped = r.skipped;
+    unmatchedSales = r.unmatchedSales;
   } catch (err) {
     error = err instanceof Error ? err.message : String(err);
   }
 
   const metrics = all.filter(tab.filter);
   const isMc = tab.key === "masterclass";
-  const totalTickets = metrics.reduce((s, m) => s + m.tickets, 0);
-  const totalTicketRev = metrics.reduce((s, m) => s + m.ticketRevenue, 0);
+  const totalTickets = metrics.reduce((s, m) => s + m.tickets, 0) + unmatchedSales.reduce((s, u) => s + u.tickets, 0);
+  const totalTicketRev = metrics.reduce((s, m) => s + m.ticketRevenue, 0) + unmatchedSales.reduce((s, u) => s + u.revenue, 0);
   const totalProductRev = metrics.reduce((s, m) => s + m.totalRevenueWithinWindow, 0);
 
   const at = (sel: (m: WebinarMetrics) => number): Point[] =>
@@ -222,6 +224,20 @@ export default async function TrendsPage({
                           <td style={tdR}>{usdFull(m.totalRevenueWithinWindow)}</td>
                         </tr>
                       ))}
+                      {/* Classes that sold tickets but have no webinar record in
+                          the app (pre-app history not in the sheet) — sales only. */}
+                      {[...unmatchedSales]
+                        .sort((a, b) => (b.date ?? "").localeCompare(a.date ?? ""))
+                        .map((u) => (
+                          <tr key={u.description} style={{ borderTop: "1px solid #f0eee9", color: "#888" }}>
+                            <td style={td}>{u.description}</td>
+                            <td style={td}>{u.date ? new Date(u.date + "T12:00:00Z").toLocaleDateString("en-US", { timeZone: "America/New_York" }) : "—"}</td>
+                            <td style={tdR}>—</td>
+                            <td style={tdR}>{u.tickets}</td>
+                            <td style={tdR}>{usdFull(u.revenue)}</td>
+                            <td style={tdR}>—</td>
+                          </tr>
+                        ))}
                       <tr style={{ borderTop: "2px solid #2f302f", fontWeight: 800 }}>
                         <td style={td}>Total</td>
                         <td style={td} />
@@ -234,8 +250,9 @@ export default async function TrendsPage({
                   </table>
                 </div>
                 <div style={{ fontSize: 11.5, color: "#999", marginTop: 8 }}>
-                  Tickets match the TeamDesk &quot;Annual SKU Unit Sales Table&quot; (valid sales only). &quot;—&quot; = no
-                  matching product SKU found for that class.
+                  Tickets match the TeamDesk &quot;Annual SKU Unit Sales Table&quot; (valid sales only).
+                  Gray rows sold tickets but have no webinar record in the app (pre-app history);
+                  &quot;—&quot; tickets = no matching product SKU for that class.
                 </div>
               </section>
             )}

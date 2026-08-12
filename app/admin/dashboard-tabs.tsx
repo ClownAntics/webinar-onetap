@@ -3,6 +3,7 @@
 import { useState } from "react";
 import StatusPill from "./status-pill";
 import { STATUS_META, isActionable } from "@/lib/status";
+import { BRAND_LABELS, type Brand } from "@/lib/brands";
 import type { WebinarStatus } from "@/lib/types";
 
 export interface CardData {
@@ -11,6 +12,8 @@ export interface CardData {
   startTime: string | null;
   bannerUrl: string | null;
   status: WebinarStatus;
+  brand: Brand;
+  isMasterclass: boolean;
   registered: number | null;
   sources: { name: string; count: number }[];
   attended: number;
@@ -18,6 +21,16 @@ export interface CardData {
   /** 7-day attributed revenue from the webinar_summary cache (null = not computed). */
   revenue7d: number | null;
 }
+
+// Past-tab filter: each org separate, FacePaint split into free webinars vs
+// paid masterclasses (mirrors the Trends tabs).
+const PAST_FILTERS: { key: string; label: string; match: (c: CardData) => boolean }[] = [
+  { key: "all", label: "All", match: () => true },
+  { key: "facepaint", label: BRAND_LABELS.facepaint, match: (c) => c.brand === "facepaint" && !c.isMasterclass },
+  { key: "masterclass", label: "Masterclasses", match: (c) => c.isMasterclass },
+  { key: "clownantics", label: BRAND_LABELS.clownantics, match: (c) => c.brand === "clownantics" && !c.isMasterclass },
+  { key: "careerlearning", label: BRAND_LABELS.careerlearning, match: (c) => c.brand === "careerlearning" && !c.isMasterclass },
+];
 
 type TabKey = "attention" | "upcoming" | "past";
 
@@ -37,7 +50,11 @@ export default function DashboardTabs({
   ];
   const firstNonEmpty = tabs.find((t) => t.cards.length > 0)?.key ?? "attention";
   const [active, setActive] = useState<TabKey>(firstNonEmpty);
+  const [pastFilter, setPastFilter] = useState("all");
   const activeTab = tabs.find((t) => t.key === active)!;
+  const filter = PAST_FILTERS.find((f) => f.key === pastFilter) ?? PAST_FILTERS[0];
+  const visibleCards =
+    activeTab.key === "past" ? activeTab.cards.filter(filter.match) : activeTab.cards;
 
   return (
     <div style={{ marginTop: 20 }}>
@@ -70,13 +87,40 @@ export default function DashboardTabs({
         })}
       </div>
 
-      {activeTab.cards.length === 0 ? (
+      {activeTab.key === "past" && (
+        <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginBottom: 14 }}>
+          {PAST_FILTERS.map((f) => {
+            const on = f.key === pastFilter;
+            const n = activeTab.cards.filter(f.match).length;
+            return (
+              <button
+                key={f.key}
+                onClick={() => setPastFilter(f.key)}
+                style={{
+                  background: on ? "#2f302f" : "#fff",
+                  color: on ? "#fff" : "#555",
+                  border: on ? "1.5px solid #2f302f" : "1.5px solid #ddd",
+                  borderRadius: 999,
+                  padding: "5px 12px",
+                  fontSize: 12,
+                  fontWeight: 700,
+                  cursor: "pointer",
+                }}
+              >
+                {f.label} <span style={{ opacity: 0.6 }}>{n}</span>
+              </button>
+            );
+          })}
+        </div>
+      )}
+
+      {visibleCards.length === 0 ? (
         <div style={{ color: "#999", fontSize: 14, padding: "8px 2px" }}>
           Nothing here right now.
         </div>
       ) : (
         <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-          {activeTab.cards.map((c) => (
+          {visibleCards.map((c) => (
             <Card key={c.id} c={c} />
           ))}
         </div>

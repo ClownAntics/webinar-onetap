@@ -94,15 +94,6 @@ export default function SetupPanel(props: SetupInitial) {
     }
   }
 
-  async function manual(action: "emailed_artist" | "designs_received") {
-    await fetch("/api/admin/webinar/status", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ webinarId: props.webinarId, action }),
-    });
-    window.location.reload();
-  }
-
   if (readOnly) {
     return (
       <div style={cardStyle}>
@@ -245,15 +236,6 @@ export default function SetupPanel(props: SetupInitial) {
       {!firstTime && (
         <CopyButton text={props.omnisendLink} label="Copy link for Yumer" reveal bg="#0C84A4" />
       )}
-
-      <div style={{ display: "flex", gap: 8, marginTop: 4 }}>
-        <button onClick={() => manual("emailed_artist")} style={smallBtn}>
-          Emailed artist ✓
-        </button>
-        <button onClick={() => manual("designs_received")} style={smallBtn}>
-          Designs received ✓
-        </button>
-      </div>
     </div>
   );
 }
