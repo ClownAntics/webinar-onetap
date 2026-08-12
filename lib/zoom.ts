@@ -115,15 +115,22 @@ export async function getTrackingSources(webinarId: string): Promise<TrackingSou
       source_name?: string;
       tracking_url?: string;
       visitor_count?: number | string;
+      // NOTE: Zoom's API misspells this field as "registrationr_count".
+      registrationr_count?: number | string;
       registration_count?: number | string;
     }>;
   };
-  return (data.tracking_sources ?? []).map((s) => ({
-    source_name: s.source_name || "Other",
-    tracking_url: s.tracking_url,
-    visitor_count: Number(s.visitor_count ?? 0),
-    registration_count: Number(s.registration_count ?? 0),
-  }));
+  return (data.tracking_sources ?? []).map((s) => {
+    const raw = (s.source_name || "Other").trim();
+    // Source names come prefixed with the webinar title: "…Webinar - Email".
+    const shortName = raw.includes(" - ") ? raw.slice(raw.lastIndexOf(" - ") + 3).trim() : raw;
+    return {
+      source_name: shortName || "Other",
+      tracking_url: s.tracking_url,
+      visitor_count: Number(s.visitor_count ?? 0),
+      registration_count: Number(s.registrationr_count ?? s.registration_count ?? 0),
+    };
+  });
 }
 
 /** Total registrant count for a webinar (paginated). Accurate but heavier. */
