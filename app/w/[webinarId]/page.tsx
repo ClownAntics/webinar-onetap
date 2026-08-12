@@ -61,6 +61,7 @@ export default async function WebinarLanding({
       config={config}
       registrationUrl={registrationUrl}
       preview={get("preview") === "1"}
+      previewBrand={get("brand")}
     />
   );
 }

@@ -47,6 +47,8 @@ export default function RegistrationClient(props: {
   config: WebinarConfig | null;
   registrationUrl?: string;
   preview?: boolean;
+  /** ?brand= override, honored only in preview mode (theme check before saving). */
+  previewBrand?: string;
 }) {
   const { webinarId, config } = props;
   const [email, setEmail] = useState(props.email);
@@ -56,7 +58,7 @@ export default function RegistrationClient(props: {
   const [phase, setPhase] = useState<Phase>("form");
   const [result, setResult] = useState<RegisterResult | null>(null);
 
-  const brand = getBrand(config?.brand);
+  const brand = getBrand(props.preview && props.previewBrand ? props.previewBrand : config?.brand);
   const title = config?.display_title ?? config?.zoom_topic ?? `${brand.name} Webinar`;
   const dateLabel = formatDate(config?.start_time);
   const missingEmail = !props.email;

@@ -27,6 +27,9 @@ export const BRAND_THEMES: Record<Brand, BrandTheme> = {
     confetti: true,
     vars: {}, // globals.css defaults ARE the FacePaint theme
   },
+  // Palette from the Clownantics style guide (logo colors #F10505 red /
+  // #FFFF01 yellow / #0186FF blue; main colors add #45b308 / #14BCFC).
+  // Bright white page like clownantics.com, red CTA, logo-color confetti.
   clownantics: {
     key: "clownantics",
     name: "Clownantics.com",
@@ -34,12 +37,32 @@ export const BRAND_THEMES: Record<Brand, BrandTheme> = {
     disclosure: "By registering, you join the Clownantics.com mailing list. Unsubscribe anytime.",
     confetti: true,
     vars: {
-      "--fp-yellow": "#e4262c",
-      "--fp-yellow-hover": "#f0454a",
-      "--fp-yellow-shadow": "#9e1418",
+      "--fp-bg": "#ffffff",
+      "--fp-white": "#000000",
+      "--fp-text-85": "rgba(0, 0, 0, 0.85)",
+      "--fp-text-65": "rgba(0, 0, 0, 0.65)",
+      "--fp-text-60": "rgba(0, 0, 0, 0.6)",
+      "--fp-text-40": "rgba(0, 0, 0, 0.45)",
+      "--fp-yellow": "#f10505",
+      "--fp-yellow-hover": "#ff2b2b",
+      "--fp-yellow-shadow": "#a80303",
       "--fp-cta-text": "#ffffff",
+      "--fp-blue": "#0186ff",
+      "--fp-input-bg": "rgba(0, 0, 0, 0.04)",
+      "--fp-input-border": "rgba(0, 0, 0, 0.35)",
+      "--fp-placeholder": "rgba(0, 0, 0, 0.5)",
+      "--fp-outline": "rgba(0, 0, 0, 0.35)",
+      "--fp-spinner-track": "rgba(0, 0, 0, 0.15)",
+      "--fp-surface": "rgba(0, 0, 0, 0.06)",
+      "--fp-confetti-pink": "#f10505",
+      "--fp-confetti-green": "#45b308",
+      "--fp-confetti-yellow": "#f0d000", // guide's #FFFF01 is invisible on white
+      "--fp-confetti-blue": "#0186ff",
+      "--fp-confetti-orange": "#14bcfc",
     },
   },
+  // Palette from the CareerLearning brand guide: primary #2e3192 indigo +
+  // #00a3c9 cyan, secondary blues; bright/bold but elegant, lots of white space.
   careerlearning: {
     key: "careerlearning",
     name: "CareerLearning.com",
@@ -47,11 +70,23 @@ export const BRAND_THEMES: Record<Brand, BrandTheme> = {
     disclosure: "By registering, you join the CareerLearning.com mailing list. Unsubscribe anytime.",
     confetti: false,
     vars: {
-      "--fp-bg": "#1b2a4a",
-      "--fp-yellow": "#f5a623",
-      "--fp-yellow-hover": "#ffb946",
-      "--fp-yellow-shadow": "#b87a10",
-      "--fp-blue": "#5c9ddb",
+      "--fp-bg": "#ffffff",
+      "--fp-white": "#2e3192",
+      "--fp-text-85": "rgba(46, 49, 146, 0.9)",
+      "--fp-text-65": "rgba(46, 49, 146, 0.75)",
+      "--fp-text-60": "rgba(46, 49, 146, 0.7)",
+      "--fp-text-40": "rgba(46, 49, 146, 0.55)",
+      "--fp-yellow": "#00a3c9",
+      "--fp-yellow-hover": "#14b7dd",
+      "--fp-yellow-shadow": "#007b98",
+      "--fp-cta-text": "#ffffff",
+      "--fp-blue": "#146bb5",
+      "--fp-input-bg": "rgba(46, 49, 146, 0.05)",
+      "--fp-input-border": "rgba(46, 49, 146, 0.35)",
+      "--fp-placeholder": "rgba(46, 49, 146, 0.55)",
+      "--fp-outline": "rgba(46, 49, 146, 0.35)",
+      "--fp-spinner-track": "rgba(46, 49, 146, 0.2)",
+      "--fp-surface": "rgba(46, 49, 146, 0.08)",
     },
   },
 };
