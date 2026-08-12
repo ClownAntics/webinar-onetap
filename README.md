@@ -1,3 +1,5 @@
+> 👉 **Start here: [HANDOFF.md](HANDOFF.md)** — current live state, architecture, env, Zoom gotchas, and what's done vs. remaining. The build docs below are historical.
+
 > ⚠️ **SUPERSEDED — do not build from this file.** This v2 handoff is kept for
 > reference only. The authoritative build spec is **[README-build-v3.md](README-build-v3.md)**
 > (full scope: reporting, revenue attribution, cron, optout). Where anything here
