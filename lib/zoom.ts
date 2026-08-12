@@ -96,6 +96,34 @@ export async function listWebinars(
   return (data.webinars ?? []).map((w) => ({ ...w, id: String(w.id) }));
 }
 
+/**
+ * Webinar reports for the host user in a date range (max 1 month per Zoom's
+ * API) — reaches further back than listWebinars("past"), bounded by Zoom's
+ * report retention. Used to recover historical masterclass sessions.
+ */
+export async function listWebinarReports(
+  from: string,
+  to: string
+): Promise<{ id: string; topic: string; start_time: string }[]> {
+  const out: { id: string; topic: string; start_time: string }[] = [];
+  let token = "";
+  do {
+    const res = await zoomFetch(
+      `/report/users/${encodeURIComponent(env.zoom.hostUserId)}/webinars?from=${from}&to=${to}&page_size=300${token ? `&next_page_token=${token}` : ""}`
+    );
+    if (!res.ok) throw new Error(`listWebinarReports ${res.status}: ${await res.text()}`);
+    const data = (await res.json()) as {
+      webinars?: { id: string | number; topic: string; start_time: string }[];
+      next_page_token?: string;
+    };
+    for (const w of data.webinars ?? []) {
+      out.push({ id: String(w.id), topic: w.topic, start_time: w.start_time });
+    }
+    token = data.next_page_token ?? "";
+  } while (token);
+  return out;
+}
+
 export interface TrackingSource {
   source_name: string;
   tracking_url?: string;
