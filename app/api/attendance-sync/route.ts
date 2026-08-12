@@ -46,15 +46,20 @@ export async function POST(req: NextRequest) {
     const sb = appSupabase();
     const { data: existing } = await sb.from("webinar_config").select("webinar_id");
     const have = new Set((existing ?? []).map((c) => c.webinar_id));
+    // Zoom's "past" list can include recurring webinars whose next occurrence
+    // is in the future — only genuinely-ended ones get COMPLETE.
     const newConfigs = past
       .filter((w) => !have.has(String(w.id)))
-      .map((w) => ({
-        webinar_id: String(w.id),
-        zoom_topic: w.topic ?? null,
-        display_title: cleanWebinarTitle(w.topic) || w.topic || null,
-        start_time: w.start_time ?? null,
-        status: "COMPLETE",
-      }));
+      .map((w) => {
+        const ended = w.start_time ? new Date(w.start_time).getTime() < Date.now() : false;
+        return {
+          webinar_id: String(w.id),
+          zoom_topic: w.topic ?? null,
+          display_title: cleanWebinarTitle(w.topic) || w.topic || null,
+          start_time: w.start_time ?? null,
+          status: ended ? "COMPLETE" : "NEEDS_SETUP",
+        };
+      });
     if (newConfigs.length > 0) {
       const { error } = await sb.from("webinar_config").insert(newConfigs);
       if (error) return NextResponse.json({ error: error.message, results }, { status: 500 });
