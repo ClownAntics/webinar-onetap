@@ -11,6 +11,10 @@ export interface BrandTheme {
   name: string;
   /** Path under /public, or null to render a text monogram instead. */
   logoSrc: string | null;
+  /** Intrinsic pixel size of the logo file (next/image needs it). */
+  logoSize?: { width: number; height: number };
+  /** "round" = 76px circle crop (FacePaint); "wide" = uncropped wordmark. */
+  logoShape?: "round" | "wide";
   disclosure: string;
   /** FacePaint's page is playful; careerlearning's audience is professional. */
   confetti: boolean;
@@ -23,6 +27,8 @@ export const BRAND_THEMES: Record<Brand, BrandTheme> = {
     key: "facepaint",
     name: "FacePaint.com",
     logoSrc: "/fp-logo.jpg",
+    logoSize: { width: 76, height: 76 },
+    logoShape: "round",
     disclosure: "By registering, you join the FacePaint.com mailing list. Unsubscribe anytime.",
     confetti: true,
     vars: {}, // globals.css defaults ARE the FacePaint theme
@@ -33,7 +39,9 @@ export const BRAND_THEMES: Record<Brand, BrandTheme> = {
   clownantics: {
     key: "clownantics",
     name: "Clownantics.com",
-    logoSrc: null, // drop /cl-logo.png into /public and set this
+    logoSrc: "/clownantics-logo.jpg",
+    logoSize: { width: 378, height: 198 },
+    logoShape: "wide",
     disclosure: "By registering, you join the Clownantics.com mailing list. Unsubscribe anytime.",
     confetti: true,
     vars: {
@@ -66,7 +74,9 @@ export const BRAND_THEMES: Record<Brand, BrandTheme> = {
   careerlearning: {
     key: "careerlearning",
     name: "CareerLearning.com",
-    logoSrc: null, // drop /career-logo.png into /public and set this
+    logoSrc: "/careerlearning-logo.png",
+    logoSize: { width: 1200, height: 384 },
+    logoShape: "wide",
     disclosure: "By registering, you join the CareerLearning.com mailing list. Unsubscribe anytime.",
     confetti: false,
     vars: {

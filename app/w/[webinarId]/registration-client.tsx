@@ -209,6 +209,10 @@ export default function RegistrationClient(props: {
 }
 
 function BrandLogo({ brand }: { brand: BrandTheme }) {
+  if (brand.logoSrc && brand.logoShape === "wide") {
+    const { width, height } = brand.logoSize ?? { width: 300, height: 100 };
+    return <Image src={brand.logoSrc} alt={brand.name} width={width} height={height} className={styles.logoWide} priority />;
+  }
   if (brand.logoSrc) {
     return <Image src={brand.logoSrc} alt={brand.name} width={76} height={76} className={styles.logo} priority />;
   }
