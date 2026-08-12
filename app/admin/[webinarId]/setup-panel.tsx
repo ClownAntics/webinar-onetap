@@ -20,7 +20,7 @@ const inputStyle: React.CSSProperties = {
   border: "1.5px solid #ddd",
   fontSize: 14,
 };
-const helpStyle: React.CSSProperties = { fontSize: 11.5, color: "#999", marginTop: -8 };
+const helpStyle: React.CSSProperties = { fontSize: 11.5, color: "#999", marginTop: 5 };
 
 const TEMPLATES: Record<string, (t: string) => string> = {
   "Product Demo": (t) => `What questions do you have about ${t}?`,
