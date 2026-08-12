@@ -38,6 +38,8 @@ export async function POST(req: NextRequest) {
     } catch (err) {
       monthErrors[from] = err instanceof Error ? err.message : String(err);
     }
+    // Dashboard API allows ~1 request/second — pace the month windows.
+    await new Promise((r) => setTimeout(r, 1200));
   }
 
   // Which of these look like paid classes? Product match first, name second.
