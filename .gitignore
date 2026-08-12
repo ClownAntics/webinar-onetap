@@ -24,6 +24,11 @@ yarn-error.log*
 .env
 .env*.local
 
+# registrant data (customer PII — repo is public, never commit)
+Zoom Registrant Info.xlsx
+past-zoom-data.csv
+*.csv
+
 # vercel
 .vercel
 
@@ -31,3 +36,4 @@ yarn-error.log*
 *.tsbuildinfo
 
 .vercel
+.env*.local
