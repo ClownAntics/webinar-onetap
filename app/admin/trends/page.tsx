@@ -6,6 +6,8 @@ import type { WebinarMetrics } from "@/lib/types";
 import LineChart, { type Point } from "./line-chart";
 
 export const dynamic = "force-dynamic";
+// Full-history metrics over ~27k attendance rows + sales lookups takes ~10s.
+export const maxDuration = 60;
 
 const usd = (n: number) =>
   n >= 1000 ? `$${(n / 1000).toFixed(1)}k` : `$${Math.round(n)}`;

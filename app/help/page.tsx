@@ -32,6 +32,7 @@ export default function HelpPage() {
           <ol>
             <li style={li}><b>Create the webinar in Zoom</b> as usual — with <b>Registration → Required</b>, and the custom question set to <b>not required</b> (so one-tap works without forcing an answer).</li>
             <li style={li}>Open the <Link href="/admin">Admin</Link> and click the webinar (it shows <b>NEEDS SETUP</b>).</li>
+            <li style={li}><b>Pick the Organization</b> (FacePaint / Clownantics / CareerLearning) — it sets the landing page&apos;s logo, colors, and mailing-list text.</li>
             <li style={li}><b>Title, agenda, and the registration question auto-fill from Zoom</b> — tweak if you like.</li>
             <li style={li}><b>Upload the banner</b> (the designed image for this webinar).</li>
             <li style={li}>Click <b>Save — go live</b>.</li>

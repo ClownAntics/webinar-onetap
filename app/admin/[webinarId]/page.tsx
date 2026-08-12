@@ -4,7 +4,7 @@ import { getEmployee } from "@/lib/auth";
 import StatusPill from "../status-pill";
 import SetupPanel from "./setup-panel";
 import CopyButton from "./copy-button";
-import { appSupabase } from "@/lib/supabase";
+import { appSupabase, fetchAllRows } from "@/lib/supabase";
 import { getWebinar, getRegistrantQuestions, getTrackingSources, type TrackingSource } from "@/lib/zoom";
 import { cleanWebinarTitle } from "@/lib/format";
 import { computeOneWebinarMetrics } from "@/lib/reporting";
@@ -14,6 +14,8 @@ import { BRAND_LABELS } from "@/lib/brands";
 import type { WebinarConfig, WebinarMetrics, WebinarStatus } from "@/lib/types";
 
 export const dynamic = "force-dynamic";
+// Revenue block reads full attendance history for lifetime segmentation.
+export const maxDuration = 60;
 
 interface RegEvent {
   email: string;
@@ -50,12 +52,16 @@ async function loadDetail(webinarId: string): Promise<Detail> {
     const sb = appSupabase();
     const [cfg, re, att] = await Promise.all([
       sb.from("webinar_config").select("*").eq("webinar_id", webinarId).maybeSingle<WebinarConfig>(),
-      sb.from("webinar_reg_events").select("email, source, question_answer, ts").eq("webinar_id", webinarId),
-      sb.from("webinar_attendance").select("email, attended").eq("webinar_id", webinarId),
+      fetchAllRows<RegEvent>((from, to) =>
+        sb.from("webinar_reg_events").select("email, source, question_answer, ts").eq("webinar_id", webinarId).order("id").range(from, to)
+      ),
+      fetchAllRows<AttRow>((from, to) =>
+        sb.from("webinar_attendance").select("email, attended").eq("webinar_id", webinarId).order("id").range(from, to)
+      ),
     ]);
     config = cfg.data ?? null;
-    regEvents = (re.data ?? []) as RegEvent[];
-    attendance = (att.data ?? []) as AttRow[];
+    regEvents = re;
+    attendance = att;
   } catch (err) {
     dbError = err instanceof Error ? err.message : String(err);
   }

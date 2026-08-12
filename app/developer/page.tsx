@@ -36,7 +36,7 @@ export default function DeveloperPage() {
           <h2 style={h2}>Auth</h2>
           <p style={{ margin: 0 }}>
             Supabase Auth + Google, gated to allowed email domains (<span style={code}>ADMIN_ALLOWED_DOMAINS</span>, default
-            clownantics.com/facepaint.com). See <span style={code}>lib/auth.ts</span> + <span style={code}>middleware.ts</span>.
+            clownantics.com/facepaint.com/careerlearning.com). See <span style={code}>lib/auth.ts</span> + <span style={code}>middleware.ts</span>.
           </p>
         </section>
 
@@ -53,7 +53,9 @@ export default function DeveloperPage() {
           <h2 style={h2}>Reporting (revenue)</h2>
           <p style={{ margin: 0 }}>
             7-day attribution: match attendee/no-show emails to <span style={code}>td_order</span> (sum <span style={code}>TotalCostCalced</span> for orders within 7 days of the webinar).
-            New/Reactivated/Active segmentation. See <span style={code}>lib/reporting.ts</span>. Backfill history with <span style={code}>scripts/backfill.mjs</span>.
+            New/Reactivated/Active segmentation. See <span style={code}>lib/reporting.ts</span>. History back to June 2024 is imported (backfill done; re-runnable via <span style={code}>scripts/backfill.mjs</span>).
+            ⚠️ PostgREST caps responses at 1000 rows — paginate full-table reads with <span style={code}>fetchAllRows</span> (<span style={code}>lib/supabase.ts</span>).
+            Sales lookups use the <span style={code}>webinar_orders_for_emails</span> SQL function (case-insensitive, indexed) — call it plain, never with <span style={code}>.order()/.range()</span>.
           </p>
         </section>
 

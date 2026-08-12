@@ -1,4 +1,4 @@
-import { salesSupabase, appSupabase } from "./supabase";
+import { salesSupabase, appSupabase, fetchAllRows } from "./supabase";
 import type { AttendanceRow, SalesOrder, WebinarMetrics } from "./types";
 
 /**
@@ -11,6 +11,36 @@ export const REACTIVATION_THRESHOLD_DAYS = 180;
 
 const DAY_MS = 1000 * 60 * 60 * 24;
 const round2 = (n: number) => Math.round(n * 100) / 100;
+
+interface OrderRpcRow {
+  email: string;
+  order_date: string;
+  order_number: string | null;
+  amount: number | null;
+}
+
+/**
+ * Fetch orders for a batch of (lowercased) emails via the rpc. A response of
+ * exactly the 1000-row PostgREST cap means possible truncation — split the
+ * email batch in half and recurse until every response is complete.
+ */
+async function fetchOrdersFor(
+  sb: ReturnType<typeof salesSupabase>,
+  emails: string[]
+): Promise<OrderRpcRow[]> {
+  const { data, error } = await sb.rpc("webinar_orders_for_emails", { p_emails: emails });
+  if (error) throw new Error(`td_order query failed: ${error.message}`);
+  const rows = (data ?? []) as OrderRpcRow[];
+  if (rows.length >= 1000 && emails.length > 1) {
+    const mid = Math.ceil(emails.length / 2);
+    const [a, b] = await Promise.all([
+      fetchOrdersFor(sb, emails.slice(0, mid)),
+      fetchOrdersFor(sb, emails.slice(mid)),
+    ]);
+    return [...a, ...b];
+  }
+  return rows;
+}
 
 /**
  * Floor a date to its UTC calendar day (epoch ms). Attribution is day-level —
@@ -44,23 +74,23 @@ export async function loadSalesForEmails(
   const unique = Array.from(new Set(emails.map((e) => e.toLowerCase().trim())));
   const sb = salesSupabase();
 
-  // Chunk to keep the IN() list reasonable.
-  const CHUNK = 500;
+  // webinar_orders_for_emails (migration 0003): matches lower("Email") via an
+  // expression index — case-insensitive and fast on the 230k-row mirror.
+  // NOTE: do NOT add .order()/.range() to this rpc — PostgREST's sort wrapper
+  // on function results hits the 8s statement timeout. Instead call plain
+  // (fast) and split any chunk that fills the 1000-row response cap.
+  const CHUNK = 200;
   for (let i = 0; i < unique.length; i += CHUNK) {
     const slice = unique.slice(i, i + CHUNK);
-    const { data, error } = await sb
-      .from("td_order")
-      .select('"Email","Date","OrderNumber","TotalCostCalced"')
-      .in("Email", slice);
-    if (error) throw new Error(`td_order query failed: ${error.message}`);
-    for (const row of (data ?? []) as Record<string, unknown>[]) {
-      const email = String(row["Email"] ?? "").toLowerCase().trim();
-      if (!email || !row["Date"]) continue;
+    const data = await fetchOrdersFor(sb, slice);
+    for (const row of data) {
+      const email = row.email.trim();
+      if (!email || !row.order_date) continue;
       const order: SalesOrder = {
         email,
-        date: String(row["Date"]),
-        orderNumber: String(row["OrderNumber"] ?? ""),
-        amount: Number(row["TotalCostCalced"] ?? 0),
+        date: row.order_date,
+        orderNumber: String(row.order_number ?? ""),
+        amount: Number(row.amount ?? 0),
       };
       const list = byEmail.get(email) ?? [];
       list.push(order);
@@ -276,11 +306,11 @@ export async function computeAllWebinarMetrics(): Promise<{
 }> {
   const app = appSupabase();
 
-  const { data: attData, error: attErr } = await app
-    .from("webinar_attendance")
-    .select("webinar_id, email, attended, duration_min");
-  if (attErr) throw new Error(`webinar_attendance read failed: ${attErr.message}`);
-  const attendance = (attData ?? []) as AttendanceRow[];
+  const attendance = await fetchAllRows<AttendanceRow>((from, to) =>
+    app.from("webinar_attendance").select("webinar_id, email, attended, duration_min").order("id").range(from, to)
+  ).catch((err) => {
+    throw new Error(`webinar_attendance read failed: ${err instanceof Error ? err.message : String(err)}`);
+  });
 
   const { data: cfgData, error: cfgErr } = await app
     .from("webinar_config")
@@ -337,11 +367,11 @@ export async function computeOneWebinarMetrics(
 ): Promise<WebinarMetrics | null> {
   const app = appSupabase();
 
-  const { data: allAtt, error } = await app
-    .from("webinar_attendance")
-    .select("webinar_id, email, attended, duration_min");
-  if (error) throw new Error(`webinar_attendance read failed: ${error.message}`);
-  const attendance = (allAtt ?? []) as AttendanceRow[];
+  const attendance = await fetchAllRows<AttendanceRow>((from, to) =>
+    app.from("webinar_attendance").select("webinar_id, email, attended, duration_min").order("id").range(from, to)
+  ).catch((err) => {
+    throw new Error(`webinar_attendance read failed: ${err instanceof Error ? err.message : String(err)}`);
+  });
   const rows = attendance.filter((r) => r.webinar_id === webinarId);
   if (rows.length === 0) return null;
 

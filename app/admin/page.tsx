@@ -3,7 +3,7 @@ import LoginGate from "./login-gate";
 import { getEmployee } from "@/lib/auth";
 import DashboardTabs, { type CardData } from "./dashboard-tabs";
 import { listWebinars, getTrackingSources, type TrackingSource } from "@/lib/zoom";
-import { appSupabase } from "@/lib/supabase";
+import { appSupabase, fetchAllRows } from "@/lib/supabase";
 import { autoAdjust, isActionable } from "@/lib/status";
 import type { WebinarStatus } from "@/lib/types";
 
@@ -30,14 +30,20 @@ async function loadDashboard(): Promise<{ cards: CardData[]; zoomError?: string;
   let dbError: string | undefined;
   try {
     const sb = appSupabase();
-    const [cfgRes, attRes, ansRes] = await Promise.all([
-      sb.from("webinar_config").select("webinar_id, display_title, zoom_topic, banner_url, status, start_time"),
-      sb.from("webinar_attendance").select("webinar_id, attended"),
-      sb.from("webinar_reg_events").select("webinar_id, question_answer"),
+    const [cfgRows, attRows, ansRows] = await Promise.all([
+      fetchAllRows<{ webinar_id: string; display_title: string | null; zoom_topic: string | null; banner_url: string | null; status: WebinarStatus | null; start_time: string | null }>(
+        (from, to) => sb.from("webinar_config").select("webinar_id, display_title, zoom_topic, banner_url, status, start_time").order("webinar_id").range(from, to)
+      ),
+      fetchAllRows<{ webinar_id: string; attended: boolean }>((from, to) =>
+        sb.from("webinar_attendance").select("webinar_id, attended").order("id").range(from, to)
+      ),
+      fetchAllRows<{ webinar_id: string; question_answer: string | null }>((from, to) =>
+        sb.from("webinar_reg_events").select("webinar_id, question_answer").order("id").range(from, to)
+      ),
     ]);
-    for (const c of cfgRes.data ?? []) configs.set(c.webinar_id, c);
-    for (const r of attRes.data ?? []) if (r.attended) attended.set(r.webinar_id, (attended.get(r.webinar_id) ?? 0) + 1);
-    for (const r of ansRes.data ?? [])
+    for (const c of cfgRows) configs.set(c.webinar_id, c);
+    for (const r of attRows) if (r.attended) attended.set(r.webinar_id, (attended.get(r.webinar_id) ?? 0) + 1);
+    for (const r of ansRows)
       if (r.question_answer && String(r.question_answer).trim())
         answers.set(r.webinar_id, (answers.get(r.webinar_id) ?? 0) + 1);
   } catch (err) {

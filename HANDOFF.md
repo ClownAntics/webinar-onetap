@@ -1,4 +1,4 @@
-# Handoff — FacePaint one-tap webinar app
+# Handoff — OneTap Webinars (multi-org one-tap webinar app)
 
 _Last updated: 2026-08-12_
 
@@ -20,13 +20,18 @@ were removed.
 - **Auth:** Supabase Google login, gated to `@clownantics.com` / `@facepaint.com` / `@careerlearning.com`.
 
 ## Multi-org branding (Aug 2026)
-The app serves **three orgs**: FacePaint, Clownantics, CareerLearning — all webinars on
-the same Zoom account (`service@facepaint.com`). Each webinar has a `brand` in
-`webinar_config` (picker in admin Setup; default `facepaint`). `lib/brands.ts` is the
-theme source of truth (colors, logo, disclosure line, confetti on/off). Landing page
-themes itself from the config row. Clownantics/CareerLearning logos not yet added —
-monogram fallback renders until files land in `/public` + `lib/brands.ts` paths set.
-Migration: `supabase/migrations/0002_brand.sql`.
+The app (named **"OneTap Webinars"**, tap-ripple `app/icon.svg` favicon) serves **three
+orgs**: FacePaint, Clownantics, CareerLearning — all webinars on the same Zoom account
+(`service@facepaint.com`). Each webinar has a `brand` in `webinar_config` (picker in
+admin Setup; default `facepaint`). `lib/brands.ts` is the theme source of truth: colors
+(real palettes from each org's style guide), logo (`logoShape: "round" | "wide"` —
+FacePaint is a 76px circle crop; Clownantics/CareerLearning are wide uncropped),
+mailing-list disclosure line, confetti on/off (off for CareerLearning). The landing
+page themes itself from the config row; per-brand CSS vars are applied inline at the
+page root, which is why `.stage` (not `<body>`) owns background AND text color.
+Preview any theme without saving: append `&brand=clownantics` etc. to a `?preview=1` link.
+Migration: `supabase/migrations/0002_brand.sql`. CareerLearning's brand font (Poppins)
+is not loaded — the app uses Montserrat everywhere (close cousin; upgrade if asked).
 
 ## Stack
 Next.js 16 (App Router) + TypeScript on Vercel. Supabase for auth + data + the sales
@@ -57,10 +62,14 @@ ZOOM_ACCOUNT_ID / ZOOM_CLIENT_ID / ZOOM_CLIENT_SECRET / ZOOM_HOST_USER_ID
 SUPABASE_URL / SUPABASE_SERVICE_KEY           (service_role key)
 SALES_SUPABASE_URL / SALES_SUPABASE_KEY        (same project + service_role)
 NEXT_PUBLIC_SUPABASE_URL / NEXT_PUBLIC_SUPABASE_ANON_KEY
-ADMIN_ALLOWED_DOMAINS = clownantics.com,facepaint.com
+ADMIN_ALLOWED_DOMAINS = clownantics.com,facepaint.com,careerlearning.com
 # OMNISEND_API_KEY — not set (marketing handled outside the app)
 ```
 Convention: Claude sets public values via `vercel env add`; Blake sets the secrets himself.
+⚠️ Secrets are marked **sensitive** in Vercel → `vercel env pull` writes them EMPTY.
+For local scripts, Blake pastes the Supabase secret key into `.env.local` (gitignored);
+the newer `sb_secret_...` key style works with supabase-js. The Zoom secret can't be
+pulled either — scripts that need Zoom should go through the deployed API instead.
 
 ## Routes / features
 - **`/w/[webinarId]`** — public one-tap page (personalized / loading / success / error / missing-email). On register failure it **redirects to Zoom's native registration** (never a dead end). `?preview=1` = preview mode (shows the page, registers no one).
@@ -74,15 +83,36 @@ Convention: Claude sets public values via `vercel env add`; Blake sets the secre
 - **APIs:** `register`, `attendance-sync`, `cron`, `ics/[regId]`, `optout`, `admin/webinar/{save,status,banner}`, `reporting/csv`, `auth/callback`, `auth/signout`.
 
 ## Reporting
-7-day revenue attribution: match attendee/no-show emails to `td_order` (sum `TotalCostCalced` for orders within 7 days of the webinar), day-level matching, New/Reactivated/Active segmentation. `lib/reporting.ts`. Backfill history: `scripts/backfill.mjs` (needs the "Zoom Registrant Info" sheet exported as CSV).
+7-day revenue attribution: match attendee/no-show emails to `td_order` (sum `TotalCostCalced` for orders within 7 days of the webinar), day-level matching, New/Reactivated/Active segmentation. `lib/reporting.ts`.
+
+**Historical backfill: DONE (2026-08-12).** 118 webinars / 27,368 reg + attendance rows
+(back to 2024-06-10) imported from the "Zoom Registrant Info" sheet ("Past Zoom Data"
+tab → `scripts/backfill.mjs`). Sanity numbers at import time: $100,920 total 7-day
+attributed revenue across all 118. Idempotent — re-running replaces backfill rows.
+⚠️ The xlsx/CSV exports contain customer PII and are **gitignored** (repo is public).
+
+### Data-layer gotchas (each cost real time)
+1. **PostgREST caps every response at 1000 rows.** Any full-table read MUST paginate —
+   use `fetchAllRows()` in `lib/supabase.ts` (pass a builder with a stable `.order()`).
+   Symptom of forgetting: silently truncated stats/charts, no error.
+2. **Zoom's API returns webinar `id` as a NUMBER**; the DB keys are text.
+   `listWebinars()` normalizes with `String(w.id)` — don't compare raw Zoom ids.
+3. **Sales lookups go through the `webinar_orders_for_emails(text[])` SQL function**
+   (migration `0003`): matches `lower("Email")` via expression index — case-insensitive
+   (~19k td_order rows have mixed-case emails that exact matching silently missed) and
+   fast (raw `IN()` on the unindexed 230k-row table hit the 8s statement timeout).
+   **Never add `.order()/.range()` to that rpc call** — PostgREST's sort wrapper on
+   function results re-triggers the timeout. `loadSalesForEmails` calls it plain and
+   splits any email batch whose response fills the 1000-row cap.
+4. `/admin/trends` + `/admin/[webinarId]` set `maxDuration = 60` — full-history metrics
+   take ~10s.
 
 ## Status: done vs. remaining
-**Working / done:** one-tap registration (tested end-to-end), Google auth, DB + RLS, tabbed dashboard with Zoom stats, detail setup (Zoom auto-fill + banner upload + preview), revenue/trends + CSV, attendance-sync, backfill script, guides, favicon.
+**Working / done:** one-tap registration (tested end-to-end), Google auth, DB + RLS, tabbed dashboard with Zoom stats, detail setup (Zoom auto-fill + banner upload + preview), revenue/trends + CSV **with full 2024→now history (backfill done)**, attendance-sync, multi-org branding with real palettes + logos, guides, OneTap rename + favicon.
 
 **Removed (out of scope):** discount code/expiry, replay URL, post-webinar sends, Omnisend lifecycle.
 
 **Remaining / follow-ups:**
-- **Backfill not yet run** → Trends is empty until the historical sheet is imported.
 - Answers panel only sees app-registered answers (fine going forward; could pull from Zoom registrants if ever needed).
 - Registration stats are fetched only for webinars within the last ~60 days (`RECENT_MS` in `app/admin/page.tsx`) to bound Zoom API calls.
 - Auto-filled registration question can read awkwardly (template stuffs the full title) — a per-webinar edit.

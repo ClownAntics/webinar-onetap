@@ -22,6 +22,26 @@ export function appSupabase(): SupabaseClient {
  * Sales Supabase — read-only mirror of TeamDesk (af-sales-research). Used only
  * by the reporting layer (§4a) to read td_order.
  */
+/**
+ * Read ALL rows of a query, paging past PostgREST's 1000-row response cap.
+ * Pass a builder that applies .range(from, to) — it MUST include a stable
+ * .order() so pages don't shift between requests.
+ */
+export async function fetchAllRows<T>(
+  page: (from: number, to: number) => PromiseLike<{ data: T[] | null; error: { message: string } | null }>
+): Promise<T[]> {
+  const PAGE = 1000;
+  const all: T[] = [];
+  for (let from = 0; ; from += PAGE) {
+    const { data, error } = await page(from, from + PAGE - 1);
+    if (error) throw new Error(error.message);
+    const rows = data ?? [];
+    all.push(...rows);
+    if (rows.length < PAGE) break;
+  }
+  return all;
+}
+
 let _sales: SupabaseClient | null = null;
 export function salesSupabase(): SupabaseClient {
   if (_sales) return _sales;

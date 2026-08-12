@@ -91,7 +91,9 @@ export async function listWebinars(
   );
   if (!res.ok) throw new Error(`listWebinars ${res.status}: ${await res.text()}`);
   const data = (await res.json()) as { webinars?: ZoomWebinar[] };
-  return data.webinars ?? [];
+  // Zoom returns id as a NUMBER at runtime; normalize so ids compare equal to
+  // the text webinar_id keys in the app DB.
+  return (data.webinars ?? []).map((w) => ({ ...w, id: String(w.id) }));
 }
 
 export interface TrackingSource {
