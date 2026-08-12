@@ -164,7 +164,7 @@ export default function SetupPanel(props: SetupInitial) {
 
       <div>
         <div style={labelStyle}>Agenda / description</div>
-        <textarea style={{ ...inputStyle, minHeight: 60 }} value={agenda} onChange={(e) => setAgenda(e.target.value)} />
+        <textarea style={{ ...inputStyle, minHeight: 150, resize: "vertical" }} value={agenda} onChange={(e) => setAgenda(e.target.value)} />
         <div style={helpStyle}>Shown on the landing page. Auto-filled from the Zoom description.</div>
       </div>
 
@@ -187,6 +187,29 @@ export default function SetupPanel(props: SetupInitial) {
       >
         {saving ? "Saving…" : firstTime ? "Save — go live" : "Save changes"}
       </button>
+
+      <a
+        href={`/w/${props.webinarId}?fn=Preview&e=preview@facepaint.com&preview=1`}
+        target="_blank"
+        rel="noreferrer"
+        style={{
+          height: 46,
+          borderRadius: 12,
+          border: "1.5px solid #2f302f",
+          background: "#fff",
+          color: "#2f302f",
+          fontWeight: 800,
+          fontSize: 14,
+          cursor: "pointer",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          textDecoration: "none",
+        }}
+      >
+        👁 Preview landing page ↗
+      </a>
+      <div style={helpStyle}>Opens the one-tap page as customers will see it. Save first to preview your latest changes.</div>
 
       {!firstTime && (
         <CopyButton text={props.omnisendLink} label="Copy link for Yumer" reveal bg="#0C84A4" />

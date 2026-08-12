@@ -22,39 +22,45 @@ export default function HelpPage() {
 
       <div style={{ maxWidth: 760, margin: "0 auto", padding: 24 }}>
         <p style={{ color: "#666" }}>
-          This app turns a Zoom webinar into a one-tap registration link. People tap a personalized
-          link (their info is already in it) and they&apos;re registered — no form to fill out.
+          This app turns a Zoom webinar into a <b>one-tap registration link</b>. People tap a
+          personalized link (their name &amp; email are already in it) and they&apos;re registered on
+          Zoom instantly — no form to fill out.
         </p>
 
         <section style={card}>
-          <h2 style={h2}>Setting up a webinar (the routine)</h2>
+          <h2 style={h2}>Setting up a webinar</h2>
           <ol>
-            <li style={li}><b>Create the webinar in Zoom</b> as usual, with <b>Registration → Required</b> and the custom question set to <b>not required</b>.</li>
-            <li style={li}>Open the <Link href="/admin">Admin</Link>, click the webinar (it shows <b>NEEDS SETUP</b>).</li>
-            <li style={li}><b>Title, agenda, and question auto-fill from Zoom</b> — tweak if you like.</li>
+            <li style={li}><b>Create the webinar in Zoom</b> as usual — with <b>Registration → Required</b>, and the custom question set to <b>not required</b> (so one-tap works without forcing an answer).</li>
+            <li style={li}>Open the <Link href="/admin">Admin</Link> and click the webinar (it shows <b>NEEDS SETUP</b>).</li>
+            <li style={li}><b>Title, agenda, and the registration question auto-fill from Zoom</b> — tweak if you like.</li>
             <li style={li}><b>Upload the banner</b> (the designed image for this webinar).</li>
-            <li style={li}>Add the <b>discount code</b> + its <b>expiry date</b> (from Shopify) when you have it.</li>
             <li style={li}>Click <b>Save — go live</b>.</li>
             <li style={li}>Click <b>Copy link for Yumer</b> and paste that link into your Omnisend invite campaign. Done.</li>
           </ol>
+          <p style={{ margin: "8px 0 0", color: "#666", fontSize: 13 }}>
+            Note: &quot;NEEDS SETUP&quot; means &quot;not set up <i>in this app</i> yet&quot; — the webinar already
+            exists in Zoom; this step just builds the one-tap landing page + invite link.
+          </p>
         </section>
 
         <section style={card}>
           <h2 style={h2}>What each field is for</h2>
           <ul>
             <li style={li}><b>Display title</b> — the headline people see on the landing page.</li>
-            <li style={li}><b>Banner</b> — the designed image at the top of the landing page.</li>
-            <li style={li}><b>Registration question</b> — the optional question shown under the button; answers collect in the &quot;What customers want to see&quot; panel.</li>
-            <li style={li}><b>Agenda / tease copy</b> — feeds the T-3-day tease email. Leave blank to skip.</li>
-            <li style={li}><b>Discount code + expiry</b> — the Shopify code sent to attendees &amp; no-shows <i>after</i> the webinar. Enter whenever you have it (before or after the event).</li>
-            <li style={li}><b>Replay URL</b> — <i>after</i> the webinar, paste the recording link. This fires the post-webinar emails (attendee code + no-show replay).</li>
+            <li style={li}><b>Banner</b> — the designed image at the top of the landing page (upload it).</li>
+            <li style={li}><b>Registration question</b> — the optional question under the button; answers collect in the &quot;What customers want to see&quot; panel.</li>
+            <li style={li}><b>Agenda / description</b> — shown on the landing page; auto-filled from the Zoom description.</li>
           </ul>
         </section>
 
         <section style={card}>
-          <h2 style={h2}>Before vs. after the webinar</h2>
-          <p style={{ margin: "0 0 8px" }}><b>Before:</b> title, banner, question, agenda, discount code → Save → share the link.</p>
-          <p style={{ margin: 0 }}><b>After:</b> paste the <b>Replay URL</b> → the app emails attendees their discount code and no-shows the replay, and marks the webinar COMPLETE.</p>
+          <h2 style={h2}>Stats</h2>
+          <p style={{ margin: 0 }}>
+            Registration counts and the <b>by-source breakdown</b> (Social / Website / Email / SMS) come
+            straight from <b>Zoom&apos;s tracking sources</b> — the real numbers, not just people who
+            registered through this app. <b>Attendance</b> and the <b>Trends / revenue</b> view populate
+            after the webinar (once attendance syncs).
+          </p>
         </section>
 
         <section style={card}>
@@ -62,14 +68,13 @@ export default function HelpPage() {
           <ul>
             <li style={li}><b>NEEDS SETUP</b> — not set up in the app yet.</li>
             <li style={li}><b>AWAITING ANSWERS</b> — live, invites out, answers accumulating.</li>
-            <li style={li}><b>EMAIL ARTIST → AWAITING ARTIST → NEEDS AGENDA → READY</b> — the design/agenda prep steps.</li>
-            <li style={li}><b>AWAITING BLOG POST</b> — webinar done, paste the replay URL.</li>
-            <li style={li}><b>COMPLETE</b> — post-webinar emails have fired.</li>
+            <li style={li}><b>READY</b> — set up and live.</li>
+            <li style={li}><b>COMPLETE</b> — a past webinar you&apos;ve wrapped up.</li>
           </ul>
         </section>
 
         <p style={{ fontSize: 13, color: "#888" }}>
-          Technical details? See <Link href="/developer">Developer instructions</Link>.
+          Technical details? See <Link href="/developer">Developer guide</Link>.
         </p>
       </div>
     </main>

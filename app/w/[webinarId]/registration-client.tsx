@@ -45,6 +45,7 @@ export default function RegistrationClient(props: {
   source: "sms" | "email" | "social";
   config: WebinarConfig | null;
   registrationUrl?: string;
+  preview?: boolean;
 }) {
   const { webinarId, config } = props;
   const [email, setEmail] = useState(props.email);
@@ -60,6 +61,13 @@ export default function RegistrationClient(props: {
 
   async function register() {
     if (!email) return;
+    // Preview mode (admin "Preview" button): show the success screen without
+    // actually registering anyone.
+    if (props.preview) {
+      setResult({ status: "success", title, startTime: config?.start_time ?? undefined });
+      setPhase("success");
+      return;
+    }
     setPhase("loading");
     try {
       const res = await fetch("/api/register", {
@@ -90,6 +98,11 @@ export default function RegistrationClient(props: {
 
   return (
     <div className={styles.stage}>
+      {props.preview && (
+        <div style={{ position: "fixed", top: 0, left: 0, right: 0, background: "#FCD700", color: "#2f302f", textAlign: "center", fontSize: 12, fontWeight: 800, letterSpacing: 1, padding: "5px", zIndex: 50 }}>
+          PREVIEW — no one is registered
+        </div>
+      )}
       {CONFETTI.map((c, i) => (
         <span
           key={i}

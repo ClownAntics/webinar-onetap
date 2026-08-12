@@ -60,6 +60,7 @@ export default async function WebinarLanding({
       source={(get("src") as "sms" | "email" | "social") ?? "sms"}
       config={config}
       registrationUrl={registrationUrl}
+      preview={get("preview") === "1"}
     />
   );
 }

@@ -127,7 +127,7 @@ export default async function AdminPage() {
           <h2 style={{ fontSize: 22, fontWeight: 800, margin: 0 }}>Webinars</h2>
           <div style={{ display: "flex", gap: 14, alignItems: "center", flexWrap: "wrap" }}>
             <a href="/help" style={{ color: "#0C84A4", fontSize: 13, fontWeight: 700, textDecoration: "none" }}>User guide</a>
-            <a href="/developer" style={{ color: "#0C84A4", fontSize: 13, fontWeight: 700, textDecoration: "none" }}>Developer</a>
+            <a href="/developer" style={{ color: "#0C84A4", fontSize: 13, fontWeight: 700, textDecoration: "none" }}>Developer guide</a>
             <a href="/admin/trends" style={{ background: "#2f302f", color: "#FCD700", padding: "8px 14px", borderRadius: 8, fontSize: 13, fontWeight: 700, textDecoration: "none" }}>
               📈 Trends &amp; revenue
             </a>

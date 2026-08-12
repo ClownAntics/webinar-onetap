@@ -30,8 +30,8 @@ export default function Home() {
         Go to Admin →
       </Link>
       <div style={{ display: "flex", gap: 20, marginTop: 8, fontSize: 14 }}>
-        <Link href="/help" style={{ color: "var(--fp-blue)" }}>User instructions</Link>
-        <Link href="/developer" style={{ color: "var(--fp-blue)" }}>Developer instructions</Link>
+        <Link href="/help" style={{ color: "var(--fp-blue)" }}>User guide</Link>
+        <Link href="/developer" style={{ color: "var(--fp-blue)" }}>Developer guide</Link>
       </div>
     </main>
   );

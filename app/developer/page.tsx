@@ -1,6 +1,6 @@
 import Link from "next/link";
 
-export const metadata = { title: "Developer notes — FacePaint Webinars" };
+export const metadata = { title: "Developer guide — FacePaint Webinars" };
 
 const card: React.CSSProperties = {
   background: "#fff",
@@ -17,7 +17,7 @@ export default function DeveloperPage() {
   return (
     <main style={{ minHeight: "100vh", background: "#f5f4f0", color: "#2f302f" }}>
       <header style={{ background: "#2f302f", color: "#fff", padding: "14px 20px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-        <span style={{ fontWeight: 800 }}>Developer instructions</span>
+        <span style={{ fontWeight: 800 }}>Developer guide</span>
         <Link href="/" style={{ color: "#FCD700", fontWeight: 700 }}>← Home</Link>
       </header>
 
@@ -58,13 +58,20 @@ export default function DeveloperPage() {
         </section>
 
         <section style={card}>
-          <h2 style={h2}>⚠️ Zoom scope gotcha (cost days)</h2>
+          <h2 style={h2}>Registration stats</h2>
           <p style={{ margin: 0 }}>
-            The webinar registrant write scope <span style={code}>webinar:write:registrant:admin</span> is filed under the
-            <b> &quot;Meetings&quot;</b> product in Add Scopes — there is <b>no separate &quot;Webinar&quot; category</b>. If it looks
-            &quot;missing,&quot; click the <b>Meetings</b> product. Also: the webinar&apos;s custom question must be <b>not required</b>,
-            or <span style={code}>POST registrants</span> returns code 300.
+            Registration counts + by-source come from Zoom <span style={code}>GET /webinars/&#123;id&#125;/tracking_sources</span>
+            (accurate, not app-only). Needs the <span style={code}>webinar:read:list_tracking_sources</span> scope.
           </p>
+        </section>
+
+        <section style={card}>
+          <h2 style={h2}>⚠️ Zoom scope gotchas (cost days)</h2>
+          <ul>
+            <li style={li}>Webinar scopes are filed under the <b>&quot;Meetings&quot;</b> product in Add Scopes — there is <b>no &quot;Webinar&quot; category</b>. If a scope looks &quot;missing,&quot; click <b>Meetings</b>.</li>
+            <li style={li}>Registration needs <span style={code}>webinar:write:registrant:admin</span>; stats need <span style={code}>webinar:read:list_tracking_sources:admin</span>. After adding scopes, redeploy (the S2S token is cached ~55 min).</li>
+            <li style={li}>The webinar&apos;s custom question must be <b>not required</b>, or <span style={code}>POST registrants</span> returns code 300.</li>
+          </ul>
         </section>
 
         <section style={card}>
