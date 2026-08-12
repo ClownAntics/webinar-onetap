@@ -10,8 +10,8 @@ const montserrat = Montserrat({
 });
 
 export const metadata: Metadata = {
-  title: "FacePaint.com Webinars",
-  description: "One-tap webinar registration for FacePaint.com",
+  title: "OneTap Webinars",
+  description: "One-tap webinar registration for FacePaint, Clownantics & CareerLearning",
 };
 
 export default function RootLayout({

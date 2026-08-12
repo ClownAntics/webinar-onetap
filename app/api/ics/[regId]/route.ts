@@ -17,7 +17,7 @@ export async function GET(
 ) {
   await params; // regId reserved for DB lookup in the full build
   const sp = req.nextUrl.searchParams;
-  const title = sp.get("title") ?? "FacePaint.com Webinar";
+  const title = sp.get("title") ?? "Webinar";
   const start = sp.get("start");
   const end = sp.get("end");
   const join = sp.get("join") ?? "";
@@ -33,7 +33,7 @@ export async function GET(
   return new NextResponse(ics, {
     headers: {
       "Content-Type": "text/calendar; charset=utf-8",
-      "Content-Disposition": 'attachment; filename="facepaint-webinar.ics"',
+      "Content-Disposition": 'attachment; filename="webinar.ics"',
     },
   });
 }

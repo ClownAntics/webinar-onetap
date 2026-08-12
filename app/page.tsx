@@ -18,7 +18,7 @@ export default function Home() {
         textAlign: "center",
       }}
     >
-      <h1 style={{ fontWeight: 900, fontSize: 28 }}>FacePaint.com Webinars</h1>
+      <h1 style={{ fontWeight: 900, fontSize: 28 }}>OneTap Webinars</h1>
       <p style={{ color: "var(--fp-text-65)", maxWidth: 440 }}>
         This is the one-tap registration service. Registration links are sent
         via Omnisend and open at <code>/w/&lt;webinarId&gt;</code>.

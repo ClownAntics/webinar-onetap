@@ -1,6 +1,6 @@
 import Link from "next/link";
 
-export const metadata = { title: "Developer guide — FacePaint Webinars" };
+export const metadata = { title: "Developer guide — OneTap Webinars" };
 
 const card: React.CSSProperties = {
   background: "#fff",
