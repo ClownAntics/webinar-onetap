@@ -34,12 +34,8 @@ export interface SetupInitial {
   display_title: string;
   question_text: string;
   agenda: string;
-  replay_url: string;
-  discount_code: string;
-  discount_expiry: string;
   banner_url: string;
   status: string;
-  replayEnabled: boolean;
   omnisendLink: string;
 }
 
@@ -48,9 +44,6 @@ export default function SetupPanel(props: SetupInitial) {
   const [template, setTemplate] = useState("Custom");
   const [questionText, setQuestionText] = useState(props.question_text);
   const [agenda, setAgenda] = useState(props.agenda);
-  const [replayUrl, setReplayUrl] = useState(props.replay_url);
-  const [discountCode, setDiscountCode] = useState(props.discount_code);
-  const [discountExpiry, setDiscountExpiry] = useState(props.discount_expiry);
   const [bannerUrl, setBannerUrl] = useState(props.banner_url);
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
@@ -85,9 +78,6 @@ export default function SetupPanel(props: SetupInitial) {
         display_title: displayTitle,
         question_text: questionText,
         agenda,
-        replay_url: replayUrl,
-        discount_code: discountCode,
-        discount_expiry: discountExpiry || null,
         banner_url: bannerUrl,
       }),
     });
@@ -173,34 +163,9 @@ export default function SetupPanel(props: SetupInitial) {
       </div>
 
       <div>
-        <div style={labelStyle}>Agenda / tease copy</div>
+        <div style={labelStyle}>Agenda / description</div>
         <textarea style={{ ...inputStyle, minHeight: 60 }} value={agenda} onChange={(e) => setAgenda(e.target.value)} />
-        <div style={helpStyle}>Feeds the T-3 day tease email. Leave blank to skip.</div>
-      </div>
-
-      <div>
-        <div style={labelStyle}>Replay URL</div>
-        <input
-          style={{ ...inputStyle, ...(props.replayEnabled ? { borderColor: "#FCD700" } : {}) }}
-          value={replayUrl}
-          onChange={(e) => setReplayUrl(e.target.value)}
-          disabled={!props.replayEnabled}
-          placeholder={props.replayEnabled ? "Paste replay URL — fires post-webinar sends" : "Enabled after the webinar date"}
-        />
-        <div style={helpStyle}>
-          {props.replayEnabled ? "Pasting this fires the post-webinar sends." : "Enabled after the webinar date passes."}
-        </div>
-      </div>
-
-      <div style={{ display: "flex", gap: 12 }}>
-        <div style={{ flex: 1 }}>
-          <div style={labelStyle}>Discount code</div>
-          <input style={inputStyle} value={discountCode} onChange={(e) => setDiscountCode(e.target.value)} placeholder="WB-XXXX-15" />
-        </div>
-        <div style={{ flex: 1 }}>
-          <div style={labelStyle}>Discount expiry</div>
-          <input style={inputStyle} type="date" value={discountExpiry} onChange={(e) => setDiscountExpiry(e.target.value)} />
-        </div>
+        <div style={helpStyle}>Shown on the landing page. Auto-filled from the Zoom description.</div>
       </div>
 
       {msg && <div style={{ color: "#B41F24", fontSize: 13 }}>{msg}</div>}

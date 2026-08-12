@@ -2,7 +2,7 @@ import Link from "next/link";
 import LoginGate from "./login-gate";
 import { getEmployee } from "@/lib/auth";
 import StatusPill from "./status-pill";
-import { listWebinars } from "@/lib/zoom";
+import { listWebinars, getTrackingSources, type TrackingSource } from "@/lib/zoom";
 import { appSupabase } from "@/lib/supabase";
 import { STATUS_META, autoAdjust } from "@/lib/status";
 import type { WebinarStatus } from "@/lib/types";
@@ -15,22 +15,14 @@ interface CardData {
   startTime: string | null;
   bannerUrl: string | null;
   status: WebinarStatus;
-  registered: number;
-  sms: number;
-  email: number;
-  other: number;
+  registered: number | null; // from Zoom tracking sources; null = not fetched
+  sources: { name: string; count: number }[];
   attended: number;
   isPast: boolean;
 }
 
-interface Agg {
-  emails: Set<string>;
-  sms: number;
-  email: number;
-  other: number;
-  answers: number;
-  attended: number;
-}
+// Only pull live Zoom stats for upcoming / recently-ended webinars (bounds API calls).
+const RECENT_MS = 60 * 24 * 60 * 60 * 1000;
 
 async function loadDashboard(): Promise<{ cards: CardData[]; zoomError?: string; dbError?: string }> {
   // Zoom webinars (best-effort).
@@ -43,68 +35,68 @@ async function loadDashboard(): Promise<{ cards: CardData[]; zoomError?: string;
     zoomError = err instanceof Error ? err.message : String(err);
   }
 
-  // Config + aggregates (best-effort).
+  // Config (status/banner/title) + attendance + answer-count from the app DB.
   const configs = new Map<string, { display_title: string | null; zoom_topic: string | null; banner_url: string | null; status: WebinarStatus | null; start_time: string | null }>();
-  const agg = new Map<string, Agg>();
+  const attended = new Map<string, number>();
+  const answers = new Map<string, number>();
   let dbError: string | undefined;
   try {
     const sb = appSupabase();
-    const [cfgRes, regRes, attRes] = await Promise.all([
+    const [cfgRes, attRes, ansRes] = await Promise.all([
       sb.from("webinar_config").select("webinar_id, display_title, zoom_topic, banner_url, status, start_time"),
-      sb.from("webinar_reg_events").select("webinar_id, email, source, question_answer"),
       sb.from("webinar_attendance").select("webinar_id, attended"),
+      sb.from("webinar_reg_events").select("webinar_id, question_answer"),
     ]);
     for (const c of cfgRes.data ?? []) configs.set(c.webinar_id, c);
-    const seen = new Set<string>(); // webinar|email, for source de-dupe
-    for (const r of regRes.data ?? []) {
-      const a = agg.get(r.webinar_id) ?? { emails: new Set(), sms: 0, email: 0, other: 0, answers: 0, attended: 0 };
-      const email = (r.email ?? "").toLowerCase();
-      const key = `${r.webinar_id}|${email}`;
-      if (email && !seen.has(key)) {
-        seen.add(key);
-        a.emails.add(email);
-        if (r.source === "sms") a.sms++;
-        else if (r.source === "email") a.email++;
-        else a.other++;
-      }
-      if (r.question_answer && String(r.question_answer).trim()) a.answers++;
-      agg.set(r.webinar_id, a);
-    }
-    for (const r of attRes.data ?? []) {
-      const a = agg.get(r.webinar_id) ?? { emails: new Set(), sms: 0, email: 0, other: 0, answers: 0, attended: 0 };
-      if (r.attended) a.attended++;
-      agg.set(r.webinar_id, a);
-    }
+    for (const r of attRes.data ?? []) if (r.attended) attended.set(r.webinar_id, (attended.get(r.webinar_id) ?? 0) + 1);
+    for (const r of ansRes.data ?? [])
+      if (r.question_answer && String(r.question_answer).trim())
+        answers.set(r.webinar_id, (answers.get(r.webinar_id) ?? 0) + 1);
   } catch (err) {
     dbError = err instanceof Error ? err.message : String(err);
   }
 
-  // Merge Zoom + config into one webinar set (union by id).
-  const ids = new Set<string>([...zoom.map((z) => z.id), ...configs.keys()]);
+  const ids = [...new Set<string>([...zoom.map((z) => z.id), ...configs.keys()])];
   const now = Date.now();
-  const cards: CardData[] = [];
-  for (const id of ids) {
-    const z = zoom.find((w) => w.id === id);
+  const startOf = (id: string) => configs.get(id)?.start_time ?? zoom.find((w) => w.id === id)?.start_time ?? null;
+
+  // Real registration counts + source breakdown from Zoom, for recent/upcoming only.
+  const statsIds = ids.filter((id) => {
+    const st = startOf(id);
+    return !st || new Date(st).getTime() > now - RECENT_MS;
+  });
+  const statsEntries = await Promise.all(
+    statsIds.map((id) =>
+      getTrackingSources(id)
+        .then((src) => [id, src] as const)
+        .catch(() => [id, [] as TrackingSource[]] as const)
+    )
+  );
+  const statsById = new Map<string, TrackingSource[]>(statsEntries);
+
+  const cards: CardData[] = ids.map((id) => {
     const c = configs.get(id);
-    const a = agg.get(id);
-    const startTime = c?.start_time ?? z?.start_time ?? null;
+    const z = zoom.find((w) => w.id === id);
+    const startTime = startOf(id);
     const endPassed = startTime ? now > new Date(startTime).getTime() : false;
     const stored: WebinarStatus = c?.status ?? "NEEDS_SETUP";
-    const status = autoAdjust(stored, { answersCount: a?.answers ?? 0, endPassed });
-    cards.push({
+    const status = autoAdjust(stored, { answersCount: answers.get(id) ?? 0, endPassed });
+    const src = statsById.get(id);
+    return {
       id,
       title: c?.display_title ?? c?.zoom_topic ?? z?.topic ?? id,
       startTime,
       bannerUrl: c?.banner_url ?? null,
       status,
-      registered: a?.emails.size ?? 0,
-      sms: a?.sms ?? 0,
-      email: a?.email ?? 0,
-      other: a?.other ?? 0,
-      attended: a?.attended ?? 0,
+      registered: src ? src.reduce((s, x) => s + x.registration_count, 0) : null,
+      sources: (src ?? [])
+        .filter((x) => x.registration_count > 0)
+        .map((x) => ({ name: x.source_name, count: x.registration_count }))
+        .sort((a, b) => b.count - a.count),
+      attended: attended.get(id) ?? 0,
       isPast: endPassed,
-    });
-  }
+    };
+  });
   return { cards, zoomError, dbError };
 }
 
@@ -200,7 +192,7 @@ function Group({ title, cards, color }: { title: string; cards: CardData[]; colo
 
 function Card({ c }: { c: CardData }) {
   const meta = STATUS_META[c.status];
-  const showRate = c.registered > 0 ? Math.round((c.attended / c.registered) * 100) : 0;
+  const showRate = c.registered && c.registered > 0 ? Math.round((c.attended / c.registered) * 100) : 0;
   const needsAttention = actionable(c);
   return (
     <a href={`/admin/${c.id}`} style={{ display: "flex", gap: 14, background: "#fff", borderRadius: 16, border: "1px solid #eee", padding: 14, textDecoration: "none", color: "inherit" }}>
@@ -220,12 +212,12 @@ function Card({ c }: { c: CardData }) {
 
         {/* stat chips */}
         <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginTop: 8, fontSize: 11.5 }}>
-          <span style={chip}>👥 <b>{c.registered}</b> registered</span>
-          {c.sms > 0 && <span style={chip}>SMS {c.sms}</span>}
-          {c.email > 0 && <span style={chip}>Email {c.email}</span>}
-          {c.other > 0 && <span style={chip}>Other {c.other}</span>}
+          {c.registered != null && <span style={chip}>👥 <b>{c.registered}</b> registered</span>}
+          {c.sources.slice(0, 4).map((s) => (
+            <span key={s.name} style={chip}>{s.name} {s.count}</span>
+          ))}
           {c.isPast && c.attended > 0 && (
-            <span style={{ ...chip, background: "#E8F5E1", color: "#3c7d2b" }}>✅ {c.attended} ({showRate}%)</span>
+            <span style={{ ...chip, background: "#E8F5E1", color: "#3c7d2b" }}>✅ {c.attended}{c.registered ? ` (${showRate}%)` : ""}</span>
           )}
         </div>
 

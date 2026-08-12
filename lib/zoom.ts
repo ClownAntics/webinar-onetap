@@ -94,6 +94,48 @@ export async function listWebinars(
   return data.webinars ?? [];
 }
 
+export interface TrackingSource {
+  source_name: string;
+  tracking_url?: string;
+  visitor_count: number;
+  registration_count: number;
+}
+
+/**
+ * Zoom registration source tracking for a webinar (Social/Website/Email/SMS…),
+ * with real registration + visitor counts. This is the accurate registration
+ * data — the app's own DB only sees people who registered through the app.
+ * Returns [] if the read scope isn't granted or the call fails.
+ */
+export async function getTrackingSources(webinarId: string): Promise<TrackingSource[]> {
+  const res = await zoomFetch(`/webinars/${webinarId}/tracking_sources`);
+  if (!res.ok) return [];
+  const data = (await res.json()) as {
+    tracking_sources?: Array<{
+      source_name?: string;
+      tracking_url?: string;
+      visitor_count?: number | string;
+      registration_count?: number | string;
+    }>;
+  };
+  return (data.tracking_sources ?? []).map((s) => ({
+    source_name: s.source_name || "Other",
+    tracking_url: s.tracking_url,
+    visitor_count: Number(s.visitor_count ?? 0),
+    registration_count: Number(s.registration_count ?? 0),
+  }));
+}
+
+/** Total registrant count for a webinar (paginated). Accurate but heavier. */
+export async function getRegistrantCount(webinarId: string): Promise<number> {
+  try {
+    const regs = await fetchRegistrants(webinarId);
+    return regs.length;
+  } catch {
+    return 0;
+  }
+}
+
 /** Fetch a single webinar's details (topic, times, native registration_url). */
 export async function getWebinar(webinarId: string): Promise<ZoomWebinar | null> {
   const res = await zoomFetch(`/webinars/${webinarId}`);

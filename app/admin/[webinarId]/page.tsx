@@ -5,7 +5,7 @@ import StatusPill from "../status-pill";
 import SetupPanel from "./setup-panel";
 import CopyButton from "./copy-button";
 import { appSupabase } from "@/lib/supabase";
-import { getWebinar, getRegistrantQuestions } from "@/lib/zoom";
+import { getWebinar, getRegistrantQuestions, getTrackingSources, type TrackingSource } from "@/lib/zoom";
 import { cleanWebinarTitle } from "@/lib/format";
 import { computeOneWebinarMetrics } from "@/lib/reporting";
 import { STATUS_META, autoAdjust } from "@/lib/status";
@@ -33,6 +33,7 @@ interface Detail {
   zoomAgenda?: string;
   zoomQuestion?: string;
   zoomBanner?: string;
+  trackingSources: TrackingSource[];
   regEvents: RegEvent[];
   attendance: AttRow[];
   dbError?: string;
@@ -58,9 +59,10 @@ async function loadDetail(webinarId: string): Promise<Detail> {
     dbError = err instanceof Error ? err.message : String(err);
   }
 
-  const [zw, questions] = await Promise.all([
+  const [zw, questions, trackingSources] = await Promise.all([
     getWebinar(webinarId).catch(() => null),
     getRegistrantQuestions(webinarId).catch(() => [] as string[]),
+    getTrackingSources(webinarId).catch(() => [] as TrackingSource[]),
   ]);
   // Zoom's API doesn't expose the registration-page banner image (branding is
   // web-UI only, and the page's og:image is just the FP logo), so we don't
@@ -75,14 +77,12 @@ async function loadDetail(webinarId: string): Promise<Detail> {
     zoomAgenda: zw?.agenda || undefined,
     zoomQuestion: questions[0] || undefined,
     zoomBanner,
+    trackingSources,
     regEvents,
     attendance,
     dbError,
   };
 }
-
-const etDate = (iso: string) =>
-  new Date(iso).toLocaleDateString("en-CA", { timeZone: "America/New_York" });
 
 export default async function WebinarDetail({
   params,
@@ -95,23 +95,14 @@ export default async function WebinarDetail({
 
   const d = await loadDetail(webinarId);
 
-  // Stats from reg_events / attendance.
-  const registeredEmails = new Set(d.regEvents.map((r) => r.email.toLowerCase()));
-  const registered = registeredEmails.size;
-  const bySource = { SMS: 0, Email: 0, Other: 0 };
-  const perDay = new Map<string, number>();
-  const seenForSource = new Set<string>();
-  for (const r of d.regEvents) {
-    const key = r.email.toLowerCase();
-    if (!seenForSource.has(key)) {
-      seenForSource.add(key);
-      if (r.source === "sms") bySource.SMS++;
-      else if (r.source === "email") bySource.Email++;
-      else bySource.Other++;
-    }
-    const day = etDate(r.ts);
-    perDay.set(day, (perDay.get(day) ?? 0) + 1);
-  }
+  // Registration stats from Zoom's tracking sources — the accurate numbers
+  // (the app DB only sees people who registered through the app).
+  const zoomVisitors = d.trackingSources.reduce((s, x) => s + x.visitor_count, 0);
+  const registered = d.trackingSources.reduce((s, x) => s + x.registration_count, 0);
+  const sources = d.trackingSources
+    .filter((x) => x.registration_count > 0 || x.visitor_count > 0)
+    .sort((a, b) => b.registration_count - a.registration_count);
+
   const answers = d.regEvents
     .filter((r) => r.question_answer && r.question_answer.trim())
     .map((r) => ({ email: r.email, answer: r.question_answer!.trim() }));
@@ -169,12 +160,8 @@ export default async function WebinarDetail({
               display_title={d.config?.display_title ?? (cleanWebinarTitle(d.rawTopic) || d.topic)}
               question_text={d.config?.question_text ?? d.zoomQuestion ?? ""}
               agenda={d.config?.agenda ?? d.zoomAgenda ?? ""}
-              replay_url={d.config?.replay_url ?? ""}
-              discount_code={d.config?.discount_code ?? ""}
-              discount_expiry={d.config?.discount_expiry ?? ""}
               banner_url={d.config?.banner_url ?? d.zoomBanner ?? ""}
               status={status}
-              replayEnabled={endPassed}
               omnisendLink={omnisendLink}
             />
           </div>
@@ -185,12 +172,12 @@ export default async function WebinarDetail({
               <div style={cardTitle}>Stats</div>
               <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
                 <StatTile label="Registered" value={registered} />
+                {zoomVisitors > 0 && <StatTile label="Visitors" value={zoomVisitors} />}
                 {hasAttendance && <StatTile label="Attended" value={attended} tone="green" />}
                 {hasAttendance && <StatTile label="Show rate" value={`${showRate}%`} tone="green" />}
               </div>
 
-              <SourceBar bySource={bySource} />
-              <Sparkline perDay={perDay} />
+              <TrackingSourcesBlock sources={sources} />
 
               {metrics && <RevenueBlock m={metrics} />}
               {metricsError && (
@@ -250,36 +237,27 @@ function StatTile({ label, value, tone }: { label: string; value: number | strin
   );
 }
 
-function SourceBar({ bySource }: { bySource: { SMS: number; Email: number; Other: number } }) {
-  const total = bySource.SMS + bySource.Email + bySource.Other || 1;
-  const seg = (n: number, color: string) => (n > 0 ? <div style={{ width: `${(n / total) * 100}%`, background: color }} /> : null);
+function TrackingSourcesBlock({ sources }: { sources: TrackingSource[] }) {
+  if (sources.length === 0) {
+    return <div style={{ fontSize: 12.5, color: "#999" }}>No source data from Zoom yet.</div>;
+  }
+  const max = Math.max(...sources.map((s) => s.registration_count), 1);
   return (
     <div>
-      <div style={{ display: "flex", height: 10, borderRadius: 999, overflow: "hidden", background: "#eee" }}>
-        {seg(bySource.SMS, "#0C84A4")}
-        {seg(bySource.Email, "#54AF3E")}
-        {seg(bySource.Other, "#C8C8C8")}
-      </div>
-      <div style={{ display: "flex", gap: 12, fontSize: 11.5, color: "#666", marginTop: 6 }}>
-        <span>■ SMS {bySource.SMS}</span>
-        <span style={{ color: "#54AF3E" }}>■</span>
-        <span style={{ marginLeft: -8 }}>Email {bySource.Email}</span>
-        <span>■ Other {bySource.Other}</span>
-      </div>
-    </div>
-  );
-}
-
-function Sparkline({ perDay }: { perDay: Map<string, number> }) {
-  const days = [...perDay.entries()].sort((a, b) => a[0].localeCompare(b[0]));
-  if (days.length === 0) return null;
-  const max = Math.max(...days.map(([, n]) => n));
-  return (
-    <div>
-      <div style={{ fontSize: 11.5, color: "#777", fontWeight: 700, marginBottom: 4 }}>Registrations / day</div>
-      <div style={{ display: "flex", alignItems: "flex-end", gap: 2, height: 40 }}>
-        {days.map(([day, n]) => (
-          <div key={day} title={`${day}: ${n}`} style={{ flex: 1, height: `${(n / max) * 100}%`, background: "#FCD700", borderRadius: 2, minHeight: 2 }} />
+      <div style={{ fontSize: 11.5, color: "#777", fontWeight: 700, marginBottom: 6 }}>By source (Zoom)</div>
+      <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+        {sources.map((s) => (
+          <div key={s.source_name} style={{ fontSize: 12.5 }}>
+            <div style={{ display: "flex", justifyContent: "space-between" }}>
+              <span>{s.source_name}</span>
+              <span style={{ color: "#777" }}>
+                <b style={{ color: "#2f302f" }}>{s.registration_count}</b> reg · {s.visitor_count} visitors
+              </span>
+            </div>
+            <div style={{ height: 6, background: "#eee", borderRadius: 999, marginTop: 3, overflow: "hidden" }}>
+              <div style={{ width: `${(s.registration_count / max) * 100}%`, height: "100%", background: "#0C84A4" }} />
+            </div>
+          </div>
         ))}
       </div>
     </div>
