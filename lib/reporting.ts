@@ -386,11 +386,13 @@ interface ConfigRow {
  *  tickets but have no webinar record in the app). */
 function classify(cfg: ConfigRow, mcSales: MasterclassSale[]) {
   const raw = cfg.zoom_topic ?? cfg.display_title ?? "";
-  const isMasterclass = isMasterclassTopic(raw) || isMasterclassTopic(cfg.display_title);
-  const sale = isMasterclass
-    ? matchMasterclassSale(mcSales, raw, cfg.start_time) ??
-      matchMasterclassSale(mcSales, cfg.display_title, cfg.start_time)
-    : undefined;
+  // A webinar is a masterclass when a paid product matches it — TeamDesk's
+  // type filter is the source of truth, not the name (e.g. "Facepaint Jam").
+  // Name test kept as fallback for classes whose product sold zero tickets.
+  const sale =
+    matchMasterclassSale(mcSales, raw, cfg.start_time) ??
+    matchMasterclassSale(mcSales, cfg.display_title, cfg.start_time);
+  const isMasterclass = !!sale || isMasterclassTopic(raw) || isMasterclassTopic(cfg.display_title);
   if (sale) sale.matched = true;
   return {
     brand: (cfg.brand ?? "facepaint") as Brand,
