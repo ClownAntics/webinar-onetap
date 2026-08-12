@@ -17,7 +17,16 @@ were removed.
 - **Repo:** https://github.com/bcabot202/webinar-onetap (public), branch `master`
 - **Prod:** https://webinar-onetap.vercel.app  (Vercel project `webinar-onetap`, org `bcabot202s-projects`)
 - **Deploy:** `vercel deploy --prod --yes` from the repo. `gh` + `vercel` CLIs are authed as `bcabot202`.
-- **Auth:** Supabase Google login, gated to `@clownantics.com` / `@facepaint.com`.
+- **Auth:** Supabase Google login, gated to `@clownantics.com` / `@facepaint.com` / `@careerlearning.com`.
+
+## Multi-org branding (Aug 2026)
+The app serves **three orgs**: FacePaint, Clownantics, CareerLearning — all webinars on
+the same Zoom account (`service@facepaint.com`). Each webinar has a `brand` in
+`webinar_config` (picker in admin Setup; default `facepaint`). `lib/brands.ts` is the
+theme source of truth (colors, logo, disclosure line, confetti on/off). Landing page
+themes itself from the config row. Clownantics/CareerLearning logos not yet added —
+monogram fallback renders until files land in `/public` + `lib/brands.ts` paths set.
+Migration: `supabase/migrations/0002_brand.sql`.
 
 ## Stack
 Next.js 16 (App Router) + TypeScript on Vercel. Supabase for auth + data + the sales
