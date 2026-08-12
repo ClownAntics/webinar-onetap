@@ -114,15 +114,9 @@ export default async function AdminPage() {
 
   const { cards, zoomError, dbError } = await loadDashboard();
 
-  const needsAttention = cards
-    .filter((c) => ["red", "amber"].includes(STATUS_META[c.status].tone))
-    .sort(byDateAsc);
-  const upcoming = cards
-    .filter((c) => !["red", "amber"].includes(STATUS_META[c.status].tone) && !c.isPast)
-    .sort(byDateAsc);
-  const past = cards
-    .filter((c) => !["red", "amber"].includes(STATUS_META[c.status].tone) && c.isPast)
-    .sort(byDateDesc);
+  const needsAttention = cards.filter(actionable).sort(byDateAsc);
+  const upcoming = cards.filter((c) => !actionable(c) && !c.isPast).sort(byDateAsc);
+  const past = cards.filter((c) => !actionable(c) && c.isPast).sort(byDateDesc);
 
   return (
     <main style={{ minHeight: "100vh", background: "#f5f4f0", color: "#2f302f" }}>
@@ -162,6 +156,19 @@ export default async function AdminPage() {
   );
 }
 
+/**
+ * A card "needs your attention" only if it's red/amber AND still actionable.
+ * A never-configured webinar whose date has already passed is NOT actionable
+ * (you won't set up a past webinar for one-tap) — it drops to Past instead of
+ * cluttering the attention list.
+ */
+function actionable(c: CardData): boolean {
+  const tone = STATUS_META[c.status].tone;
+  if (!["red", "amber"].includes(tone)) return false;
+  if (c.status === "NEEDS_SETUP" && c.isPast) return false;
+  return true;
+}
+
 function byDateAsc(a: CardData, b: CardData) {
   return new Date(a.startTime ?? 0).getTime() - new Date(b.startTime ?? 0).getTime();
 }
@@ -194,7 +201,7 @@ function Group({ title, cards, color }: { title: string; cards: CardData[]; colo
 function Card({ c }: { c: CardData }) {
   const meta = STATUS_META[c.status];
   const showRate = c.registered > 0 ? Math.round((c.attended / c.registered) * 100) : 0;
-  const needsAttention = ["red", "amber"].includes(meta.tone);
+  const needsAttention = actionable(c);
   return (
     <a href={`/admin/${c.id}`} style={{ display: "flex", gap: 14, background: "#fff", borderRadius: 16, border: "1px solid #eee", padding: 14, textDecoration: "none", color: "inherit" }}>
       {/* banner thumb */}
