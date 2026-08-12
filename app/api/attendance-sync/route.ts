@@ -1,26 +1,59 @@
 import { NextRequest, NextResponse } from "next/server";
-import { fetchRegistrants, fetchParticipants } from "@/lib/zoom";
+import { fetchRegistrants, fetchParticipants, listWebinars } from "@/lib/zoom";
 import { appSupabase } from "@/lib/supabase";
 
 export const runtime = "nodejs";
-export const maxDuration = 60;
+export const maxDuration = 300;
 
 // Host/self rows to drop, per the Apps Script.
 const EXCLUDE_EMAILS = new Set(["gbcabot@gmail.com"]);
 const EXCLUDE_NAMES = new Set(["blake cabot"]);
 
 /**
- * POST /api/attendance-sync  { webinarId }
+ * POST /api/attendance-sync  { webinarId }  — sync one webinar.
+ * POST /api/attendance-sync  { all: true }  — sync every past webinar Zoom
+ * still lists (fills gaps the sheet backfill didn't cover, e.g. Clownantics /
+ * CareerLearning / masterclass webinars). Idempotent upserts either way.
+ *
  * Pull the Zoom participant report, match to registrants by email, and upsert
  * ONE row per registrant into webinar_attendance (attended + duration_min).
  * Fires nothing — post-webinar sends wait for the replay URL.
  */
 export async function POST(req: NextRequest) {
-  const { webinarId } = (await req.json().catch(() => ({}))) as { webinarId?: string };
-  if (!webinarId) {
-    return NextResponse.json({ error: "webinarId required" }, { status: 400 });
+  const body = (await req.json().catch(() => ({}))) as { webinarId?: string; all?: boolean };
+
+  if (body.all) {
+    let past;
+    try {
+      past = await listWebinars("past");
+    } catch (err) {
+      return NextResponse.json(
+        { error: err instanceof Error ? err.message : String(err) },
+        { status: 502 }
+      );
+    }
+    const results: Record<string, unknown> = {};
+    for (const w of past) {
+      results[w.id] = await syncOne(w.id).catch((err) => ({
+        error: err instanceof Error ? err.message : String(err),
+      }));
+    }
+    return NextResponse.json({ ok: true, synced: past.length, results });
   }
 
+  if (!body.webinarId) {
+    return NextResponse.json({ error: "webinarId or all:true required" }, { status: 400 });
+  }
+  try {
+    return NextResponse.json({ ok: true, webinarId: body.webinarId, ...(await syncOne(body.webinarId)) });
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    const status = msg.startsWith("zoom:") ? 502 : 500;
+    return NextResponse.json({ error: msg }, { status });
+  }
+}
+
+async function syncOne(webinarId: string): Promise<{ registrants: number; attended: number; noShows: number }> {
   let registrants, participants;
   try {
     [registrants, participants] = await Promise.all([
