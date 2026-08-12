@@ -1,8 +1,9 @@
 import { NextResponse } from "next/server";
 import { listWebinars } from "@/lib/zoom";
+import { computeAllWebinarMetrics, writeSummaryCache } from "@/lib/reporting";
 
 export const runtime = "nodejs";
-export const maxDuration = 60;
+export const maxDuration = 300;
 
 /**
  * Vercel Cron entry (schedule in vercel.json, e.g. every 15 min). Idempotent —
@@ -41,9 +42,19 @@ export async function GET() {
     );
   }
 
+  // Refresh the webinar_summary cache (dashboard revenue chips). ~10s.
+  let summaryError: string | undefined;
+  try {
+    const { metrics } = await computeAllWebinarMetrics();
+    await writeSummaryCache(metrics);
+  } catch (err) {
+    summaryError = err instanceof Error ? err.message : String(err);
+  }
+
   return NextResponse.json({
     ok: true,
     ...results,
+    summaryError,
     note: "tease/reminder sends still TODO (need webinar_send_log idempotency)",
   });
 }

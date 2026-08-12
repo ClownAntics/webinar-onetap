@@ -15,6 +15,8 @@ export interface CardData {
   sources: { name: string; count: number }[];
   attended: number;
   isPast: boolean;
+  /** 7-day attributed revenue from the webinar_summary cache (null = not computed). */
+  revenue7d: number | null;
 }
 
 type TabKey = "attention" | "upcoming" | "past";
@@ -91,9 +93,12 @@ function Card({ c }: { c: CardData }) {
   const needsAttention = isActionable(c.status, c.isPast);
   return (
     <a href={`/admin/${c.id}`} style={{ display: "flex", gap: 14, background: "#fff", borderRadius: 16, border: "1px solid #eee", padding: 14, textDecoration: "none", color: "inherit" }}>
-      <div style={{ width: 92, height: 52, borderRadius: 8, flexShrink: 0, background: c.bannerUrl ? `center/cover url(${c.bannerUrl})` : "#e6e4df", display: "flex", alignItems: "center", justifyContent: "center", color: "#aaa", fontSize: 10 }}>
-        {!c.bannerUrl && "no banner"}
-      </div>
+      {/* Banner thumb on upcoming/attention cards only — past cards don't need it. */}
+      {!c.isPast && (
+        <div style={{ width: 92, height: 52, borderRadius: 8, flexShrink: 0, background: c.bannerUrl ? `center/cover url(${c.bannerUrl})` : "#e6e4df", display: "flex", alignItems: "center", justifyContent: "center", color: "#aaa", fontSize: 10 }}>
+          {!c.bannerUrl && "no banner"}
+        </div>
+      )}
       <div style={{ flex: 1, minWidth: 0 }}>
         <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
           <span style={{ fontWeight: 800, fontSize: 15, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", maxWidth: "100%" }}>{c.title}</span>
@@ -109,6 +114,11 @@ function Card({ c }: { c: CardData }) {
           ))}
           {c.isPast && c.attended > 0 && (
             <span style={{ ...chip, background: "#E8F5E1", color: "#3c7d2b" }}>✅ {c.attended}{c.registered ? ` (${showRate}%)` : ""}</span>
+          )}
+          {c.isPast && c.revenue7d != null && (
+            <span style={{ ...chip, background: "#FDF0D5", color: "#8a5a00", fontWeight: 700 }}>
+              💰 ${c.revenue7d.toLocaleString("en-US", { maximumFractionDigits: 0 })} (7d)
+            </span>
           )}
         </div>
         {needsAttention && (

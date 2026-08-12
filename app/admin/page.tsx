@@ -27,6 +27,7 @@ async function loadDashboard(): Promise<{ cards: CardData[]; zoomError?: string;
   const configs = new Map<string, { display_title: string | null; zoom_topic: string | null; banner_url: string | null; status: WebinarStatus | null; start_time: string | null }>();
   const attended = new Map<string, number>();
   const answers = new Map<string, number>();
+  const revenue = new Map<string, number>();
   let dbError: string | undefined;
   try {
     const sb = appSupabase();
@@ -41,6 +42,13 @@ async function loadDashboard(): Promise<{ cards: CardData[]; zoomError?: string;
         sb.from("webinar_reg_events").select("webinar_id, question_answer").order("id").range(from, to)
       ),
     ]);
+    // Revenue chips come from the webinar_summary cache (refreshed by cron).
+    const { data: summaryRows } = await sb
+      .from("webinar_summary")
+      .select("webinar_id, total_revenue_within_window")
+      .limit(1000);
+    for (const s of summaryRows ?? [])
+      if (s.total_revenue_within_window != null) revenue.set(s.webinar_id, Number(s.total_revenue_within_window));
     for (const c of cfgRows) configs.set(c.webinar_id, c);
     for (const r of attRows) if (r.attended) attended.set(r.webinar_id, (attended.get(r.webinar_id) ?? 0) + 1);
     for (const r of ansRows)
@@ -89,6 +97,7 @@ async function loadDashboard(): Promise<{ cards: CardData[]; zoomError?: string;
         .sort((a, b) => b.count - a.count),
       attended: attended.get(id) ?? 0,
       isPast: endPassed,
+      revenue7d: revenue.get(id) ?? null,
     };
   });
   return { cards, zoomError, dbError };

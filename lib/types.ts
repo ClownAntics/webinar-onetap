@@ -69,6 +69,11 @@ export interface WebinarMetrics {
   webinarId: string;
   topic: string;
   date: string;
+  brand: Brand;
+  isMasterclass: boolean;
+  /** Paid-masterclass ticket sales from the TeamDesk mirror (0 when none/unmatched). */
+  tickets: number;
+  ticketRevenue: number;
   totalRegistered: number;
   totalAttended: number;
   totalNoShows: number;

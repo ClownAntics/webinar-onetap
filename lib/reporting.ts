@@ -1,4 +1,5 @@
 import { salesSupabase, appSupabase, fetchAllRows } from "./supabase";
+import type { Brand } from "./brands";
 import type { AttendanceRow, SalesOrder, WebinarMetrics } from "./types";
 
 /**
@@ -58,6 +59,36 @@ export interface WebinarInput {
   topic: string;
   date: string; // webinar date (ISO)
   registrants: AttendanceRow[]; // all rows for this webinar (attended + no-show)
+  brand: Brand;
+  isMasterclass: boolean;
+  tickets: number;
+  ticketRevenue: number;
+}
+
+const isMasterclassTopic = (topic: string | null | undefined) => /masterclass/i.test(topic ?? "");
+
+/** Normalize a topic/product description for matching (whitespace + case). */
+const normTopic = (s: string | null | undefined) =>
+  (s ?? "").toLowerCase().replace(/\s+/g, " ").trim();
+
+/**
+ * Ticket sales per masterclass from the TeamDesk mirror, keyed by normalized
+ * product description — which matches the raw Zoom topic (verified against the
+ * TD "Annual SKU Unit Sales Table" report). Empty map if the SQL function
+ * (migration 0004) isn't installed yet — reports degrade to $0 tickets.
+ */
+export async function loadMasterclassSales(): Promise<Map<string, { tickets: number; revenue: number }>> {
+  const map = new Map<string, { tickets: number; revenue: number }>();
+  try {
+    const { data, error } = await salesSupabase().rpc("webinar_masterclass_sales");
+    if (error) throw new Error(error.message);
+    for (const r of (data ?? []) as { description: string; tickets: number; revenue: number }[]) {
+      map.set(normTopic(r.description), { tickets: Number(r.tickets ?? 0), revenue: Number(r.revenue ?? 0) });
+    }
+  } catch (err) {
+    console.warn("masterclass sales unavailable:", err instanceof Error ? err.message : err);
+  }
+  return map;
 }
 
 /**
@@ -233,6 +264,10 @@ export function computeWebinarMetrics(
     webinarId: webinar.webinarId,
     topic: webinar.topic,
     date: webinar.date,
+    brand: webinar.brand,
+    isMasterclass: webinar.isMasterclass,
+    tickets: webinar.tickets,
+    ticketRevenue: webinar.ticketRevenue,
     totalRegistered,
     totalAttended,
     totalNoShows,
@@ -293,6 +328,20 @@ interface ConfigRow {
   display_title: string | null;
   zoom_topic: string | null;
   start_time: string | null;
+  brand: Brand | null;
+}
+
+/** Build the per-webinar input fields that come from config + ticket sales. */
+function classify(cfg: ConfigRow, mcSales: Map<string, { tickets: number; revenue: number }>) {
+  const raw = cfg.zoom_topic ?? cfg.display_title ?? "";
+  const isMasterclass = isMasterclassTopic(raw) || isMasterclassTopic(cfg.display_title);
+  const sales = isMasterclass ? mcSales.get(normTopic(raw)) : undefined;
+  return {
+    brand: (cfg.brand ?? "facepaint") as Brand,
+    isMasterclass,
+    tickets: sales?.tickets ?? 0,
+    ticketRevenue: sales?.revenue ?? 0,
+  };
 }
 
 /**
@@ -314,7 +363,7 @@ export async function computeAllWebinarMetrics(): Promise<{
 
   const { data: cfgData, error: cfgErr } = await app
     .from("webinar_config")
-    .select("webinar_id, display_title, zoom_topic, start_time");
+    .select("webinar_id, display_title, zoom_topic, start_time, brand");
   if (cfgErr) throw new Error(`webinar_config read failed: ${cfgErr.message}`);
   const configBy:Map<string, ConfigRow> = new Map(
     ((cfgData ?? []) as ConfigRow[]).map((c) => [c.webinar_id, c])
@@ -329,7 +378,10 @@ export async function computeAllWebinarMetrics(): Promise<{
   }
 
   const lifetime = buildLifetimeAttendance(attendance);
-  const salesByEmail = await loadSalesForEmails(attendance.map((r) => r.email));
+  const [salesByEmail, mcSales] = await Promise.all([
+    loadSalesForEmails(attendance.map((r) => r.email)),
+    loadMasterclassSales(),
+  ]);
 
   const metrics: WebinarMetrics[] = [];
   let skipped = 0;
@@ -346,6 +398,7 @@ export async function computeAllWebinarMetrics(): Promise<{
           topic: cfg.display_title ?? cfg.zoom_topic ?? webinarId,
           date: cfg.start_time,
           registrants: rows,
+          ...classify(cfg, mcSales),
         },
         lifetime,
         salesByEmail
@@ -377,21 +430,60 @@ export async function computeOneWebinarMetrics(
 
   const { data: cfg } = await app
     .from("webinar_config")
-    .select("display_title, zoom_topic, start_time")
+    .select("webinar_id, display_title, zoom_topic, start_time, brand")
     .eq("webinar_id", webinarId)
-    .maybeSingle();
+    .maybeSingle<ConfigRow>();
   if (!cfg?.start_time) return null;
 
   const lifetime = buildLifetimeAttendance(attendance);
-  const sales = await loadSalesForEmails(rows.map((r) => r.email));
+  const needsMc = isMasterclassTopic(cfg.zoom_topic) || isMasterclassTopic(cfg.display_title);
+  const [sales, mcSales] = await Promise.all([
+    loadSalesForEmails(rows.map((r) => r.email)),
+    needsMc ? loadMasterclassSales() : Promise.resolve(new Map<string, { tickets: number; revenue: number }>()),
+  ]);
   return computeWebinarMetrics(
     {
       webinarId,
       topic: cfg.display_title ?? cfg.zoom_topic ?? webinarId,
       date: cfg.start_time,
       registrants: rows,
+      ...classify(cfg, mcSales),
     },
     lifetime,
     sales
   );
+}
+
+/**
+ * Persist computed metrics into webinar_summary — the dashboard reads this
+ * cache for per-card revenue chips (recomputed by /api/cron).
+ */
+export async function writeSummaryCache(metrics: WebinarMetrics[]): Promise<void> {
+  if (metrics.length === 0) return;
+  const rows = metrics.map((m) => ({
+    webinar_id: m.webinarId,
+    topic: m.topic,
+    webinar_date: m.date.slice(0, 10),
+    total_registered: m.totalRegistered,
+    total_attended: m.totalAttended,
+    total_no_shows: m.totalNoShows,
+    attendance_rate: m.attendanceRate,
+    new_attendees: m.newAttendees,
+    returning_attendees: m.returningAttendees,
+    vip_attendees: m.vipAttendees,
+    registered_who_are_customers: m.registeredWhoAreCustomers,
+    total_revenue_within_window: m.totalRevenueWithinWindow,
+    revenue_per_attendee: m.revenuePerAttendee,
+    revenue_per_registrant: m.revenuePerRegistrant,
+    new_customers_count: m.newCustomersCount,
+    new_customers_revenue: m.newCustomersRevenue,
+    reactivated_count: m.reactivatedCount,
+    reactivated_revenue: m.reactivatedRevenue,
+    active_count: m.activeCount,
+    active_revenue: m.activeRevenue,
+    computed_at: new Date().toISOString(),
+  }));
+  const sb = appSupabase();
+  const { error } = await sb.from("webinar_summary").upsert(rows, { onConflict: "webinar_id" });
+  if (error) throw new Error(`webinar_summary write failed: ${error.message}`);
 }

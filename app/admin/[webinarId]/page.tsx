@@ -277,6 +277,9 @@ function TrackingSourcesBlock({ sources }: { sources: TrackingSource[] }) {
 function RevenueBlock({ m }: { m: WebinarMetrics }) {
   const usd = (n: number) => `$${n.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
   const rows: [string, string][] = [
+    ...(m.isMasterclass
+      ? ([["Ticket sales", `${m.tickets} · ${usd(m.ticketRevenue)}`]] as [string, string][])
+      : []),
     ["Total revenue (7 days)", usd(m.totalRevenueWithinWindow)],
     ["Revenue / attendee", usd(m.revenuePerAttendee)],
     ["Revenue / registrant", usd(m.revenuePerRegistrant)],
