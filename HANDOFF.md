@@ -107,6 +107,26 @@ attributed revenue across all 118. Idempotent — re-running replaces backfill r
 4. `/admin/trends` + `/admin/[webinarId]` set `maxDuration = 60` — full-history metrics
    take ~10s.
 
+### Reports (tabbed, Aug 2026)
+`/admin/trends` has four tabs: **FacePaint / Masterclasses / Clownantics /
+CareerLearning**. Masterclasses (paid; topic matches /masterclass/i) are EXCLUDED from
+the FacePaint tab — free webinars and paid classes never blend (Blake's call).
+Masterclass tab adds a ticket-revenue chart + per-class table (tickets, ticket $,
+7-day product $). Ticket sales come from SQL fn `webinar_masterclass_sales()`
+(migration `0004`): td_invoice_line_item ⋈ td_product ⋈ td_order filtered on
+`flagValidSale`, grouped by product Description — which **matches the raw Zoom topic**;
+reconciles to-the-penny with the TD "Annual SKU Unit Sales Table" report. Missing fn →
+tickets show 0/"—" (code degrades, no crash). CareerLearning tab: registrations +
+attendance only — their course sales are NOT in TeamDesk (future integration).
+CSV export covers all tabs (Brand / Masterclass / Tickets / Ticket Revenue columns).
+
+**Dashboard revenue chips:** past cards show 💰 7-day revenue from the
+`webinar_summary` cache, refreshed by `/api/cron` each run (~10s recompute). Past
+cards no longer show the banner thumbnail. `POST /api/attendance-sync {all:true}`
+syncs every Zoom-listed past webinar AND creates COMPLETE config rows for any without
+one (the sheet backfill was FacePaint-only; this filled in Clownantics/CareerLearning/
+masterclass webinars on 2026-08-12 — brands then tagged per Blake's mapping).
+
 ## Status: done vs. remaining
 **Working / done:** one-tap registration (tested end-to-end), Google auth, DB + RLS, tabbed dashboard with Zoom stats, detail setup (Zoom auto-fill + banner upload + preview), revenue/trends + CSV **with full 2024→now history (backfill done)**, attendance-sync, multi-org branding with real palettes + logos, guides, OneTap rename + favicon.
 
