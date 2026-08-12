@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { fetchRegistrants, fetchParticipants, listWebinars } from "@/lib/zoom";
 import { appSupabase } from "@/lib/supabase";
+import { cleanWebinarTitle } from "@/lib/format";
 
 export const runtime = "nodejs";
 export const maxDuration = 300;
@@ -38,7 +39,33 @@ export async function POST(req: NextRequest) {
         error: err instanceof Error ? err.message : String(err),
       }));
     }
-    return NextResponse.json({ ok: true, synced: past.length, results });
+
+    // Past webinars with no config row (not in the sheet backfill) get a
+    // minimal COMPLETE config so they leave "Needs attention" and count in
+    // Trends. Never touches existing rows.
+    const sb = appSupabase();
+    const { data: existing } = await sb.from("webinar_config").select("webinar_id");
+    const have = new Set((existing ?? []).map((c) => c.webinar_id));
+    const newConfigs = past
+      .filter((w) => !have.has(String(w.id)))
+      .map((w) => ({
+        webinar_id: String(w.id),
+        zoom_topic: w.topic ?? null,
+        display_title: cleanWebinarTitle(w.topic) || w.topic || null,
+        start_time: w.start_time ?? null,
+        status: "COMPLETE",
+      }));
+    if (newConfigs.length > 0) {
+      const { error } = await sb.from("webinar_config").insert(newConfigs);
+      if (error) return NextResponse.json({ error: error.message, results }, { status: 500 });
+    }
+
+    return NextResponse.json({
+      ok: true,
+      synced: past.length,
+      configsCreated: newConfigs.map((c) => `${c.webinar_id} ${c.zoom_topic}`),
+      results,
+    });
   }
 
   if (!body.webinarId) {
@@ -61,10 +88,7 @@ async function syncOne(webinarId: string): Promise<{ registrants: number; attend
       fetchParticipants(webinarId),
     ]);
   } catch (err) {
-    return NextResponse.json(
-      { error: err instanceof Error ? err.message : String(err) },
-      { status: 502 }
-    );
+    throw new Error(`zoom: ${err instanceof Error ? err.message : String(err)}`);
   }
 
   // Sum attended minutes per email (a participant can have multiple sessions).
@@ -108,29 +132,16 @@ async function syncOne(webinarId: string): Promise<{ registrants: number; attend
     rows.push({ webinar_id: webinarId, email, attended: true, duration_min: mins });
   }
 
-  try {
-    const sb = appSupabase();
-    // Upsert in chunks on the (webinar_id, email) unique constraint.
-    const CHUNK = 500;
-    for (let i = 0; i < rows.length; i += CHUNK) {
-      const { error } = await sb
-        .from("webinar_attendance")
-        .upsert(rows.slice(i, i + CHUNK), { onConflict: "webinar_id,email" });
-      if (error) throw new Error(error.message);
-    }
-  } catch (err) {
-    return NextResponse.json(
-      { error: err instanceof Error ? err.message : String(err) },
-      { status: 500 }
-    );
+  const sb = appSupabase();
+  // Upsert in chunks on the (webinar_id, email) unique constraint.
+  const CHUNK = 500;
+  for (let i = 0; i < rows.length; i += CHUNK) {
+    const { error } = await sb
+      .from("webinar_attendance")
+      .upsert(rows.slice(i, i + CHUNK), { onConflict: "webinar_id,email" });
+    if (error) throw new Error(error.message);
   }
 
   const attended = rows.filter((r) => r.attended).length;
-  return NextResponse.json({
-    ok: true,
-    webinarId,
-    registrants: rows.length,
-    attended,
-    noShows: rows.length - attended,
-  });
+  return { registrants: rows.length, attended, noShows: rows.length - attended };
 }
