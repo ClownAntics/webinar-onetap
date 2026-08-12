@@ -114,8 +114,13 @@ the FacePaint tab — free webinars and paid classes never blend (Blake's call).
 Masterclass tab adds a ticket-revenue chart + per-class table (tickets, ticket $,
 7-day product $). Ticket sales come from SQL fn `webinar_masterclass_sales()`
 (migration `0004`): td_invoice_line_item ⋈ td_product ⋈ td_order filtered on
-`flagValidSale`, grouped by product Description — which **matches the raw Zoom topic**;
-reconciles to-the-penny with the TD "Annual SKU Unit Sales Table" report. Missing fn →
+`flagValidSale` + **SKU prefix `PFWB%`/`PFCS%`** — the exact equivalent of TeamDesk's
+"Face Painting: Webinars" type label (the mirror's `td_product."Related Type (ref)"`
+column is corrupted — holds dates — so the label can't be joined directly). A webinar
+IS a masterclass when a paid product matches it (word-set matching, order-insensitive,
+date tie-break — TD descriptions invert presenter/topic order vs Zoom); name test is
+fallback only. Classes with sales but no webinar record render as gray sales-only rows.
+Reconciles to-the-penny with the TD "Annual SKU Unit Sales Table" report. Missing fn →
 tickets show 0/"—" (code degrades, no crash). CareerLearning tab: registrations +
 attendance only — their course sales are NOT in TeamDesk (future integration).
 CSV export covers all tabs (Brand / Masterclass / Tickets / Ticket Revenue columns).
