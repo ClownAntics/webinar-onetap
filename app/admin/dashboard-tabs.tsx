@@ -133,7 +133,10 @@ const chip: React.CSSProperties = { background: "#F0EEE9", borderRadius: 999, pa
 
 function Card({ c }: { c: CardData }) {
   const meta = STATUS_META[c.status];
-  const showRate = c.registered && c.registered > 0 ? Math.round((c.attended / c.registered) * 100) : 0;
+  // Tracking-source counts miss direct-link registrations, so attended can
+  // exceed "registered" — suppress the % when it would read as >100%.
+  const showRate =
+    c.registered && c.registered >= c.attended ? Math.round((c.attended / c.registered) * 100) : 0;
   const needsAttention = isActionable(c.status, c.isPast);
   return (
     <a href={`/admin/${c.id}`} style={{ display: "flex", gap: 14, background: "#fff", borderRadius: 16, border: "1px solid #eee", padding: 14, textDecoration: "none", color: "inherit" }}>
@@ -157,7 +160,7 @@ function Card({ c }: { c: CardData }) {
             <span key={s.name} style={chip}>{s.name} {s.count}</span>
           ))}
           {c.isPast && c.attended > 0 && (
-            <span style={{ ...chip, background: "#E8F5E1", color: "#3c7d2b" }}>✅ {c.attended}{c.registered ? ` (${showRate}%)` : ""}</span>
+            <span style={{ ...chip, background: "#E8F5E1", color: "#3c7d2b" }}>✅ {c.attended}{showRate ? ` (${showRate}%)` : ""}</span>
           )}
           {c.isPast && c.revenue7d != null && (
             <span style={{ ...chip, background: "#FDF0D5", color: "#8a5a00", fontWeight: 700 }}>
