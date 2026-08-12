@@ -44,6 +44,7 @@ export default function RegistrationClient(props: {
   lastName: string;
   source: "sms" | "email" | "social";
   config: WebinarConfig | null;
+  registrationUrl?: string;
 }) {
   const { webinarId, config } = props;
   const [email, setEmail] = useState(props.email);
@@ -183,7 +184,7 @@ export default function RegistrationClient(props: {
         )}
 
         {phase === "error" && (
-          <ErrorState registrationUrl={undefined} />
+          <ErrorState registrationUrl={props.registrationUrl} />
         )}
       </div>
     </div>

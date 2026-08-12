@@ -1,0 +1,49 @@
+# Changes since handoff v3 — Aug 3, 2026
+
+Delta doc for Claude Code. Applies on top of `README.md` + `admin-dashboard-spec-v3.md`. Where they conflict, this file wins.
+
+## Registration page (`/w/[webinarId]`)
+
+### Desktop layout: two-column → single column
+- The ≥880px layout is no longer split (title/banner left, CTA card right). It is now **one centered column, max-width 640px**: logo (84px) → date line → title (40px/900, centered) → banner → about-the-artist link → CTA card (full column width).
+- Banner on desktop: full column width, **200px** tall, radius 18px, object-fit contain.
+- Mobile layout unchanged (single column, max 430px).
+
+### "About the artist" expander (new)
+- Below the banner on both layouts: a link **"About the artist ▾"** (accent blue `#5cbfdb`, 12.5–13px/700). Collapsed by default, **no preview lines shown**.
+- Expanding reveals the full artist bio: 13.5–14.5px, `rgba(255,255,255,.7)`, line-height 1.55, **left-aligned**, paragraph breaks preserved (`white-space: pre-line`); "Less ▴" collapses.
+- Bio text comes from admin config (`webinar_config.artist_bio`, see below). **If blank, hide the link entirely.**
+- Centered on mobile (link only), left-aligned link + text on desktop.
+
+### Missing-email fallback redesigned
+- When `e` param absent/invalid, the form is now a framed card: bg `rgba(255,255,255,.05)`, border 1px `rgba(255,255,255,.12)`, radius 20px, padding 18px.
+- Contents: heading **"Almost in — who's coming?"** (17px/800, centered) → labeled fields (FIRST NAME / EMAIL — 11px/800/ls 1px labels at 55% white; inputs 52px, 16px text) → email helper "Your join link lands here — double-check it!" (11.5px, 50% white) → yellow SAVE MY SEAT CTA (64px) inside the card.
+- The optional question textarea sits below the card, same as the normal flow.
+
+### Input visibility (both layouts, all states)
+- Inputs/textarea on dark: bg `rgba(255,255,255,.12)` (was .06), border 1.5px `rgba(255,255,255,.45)` (was .25), text 15–16px, placeholder `rgba(255,255,255,.75)`.
+
+### Question copy
+- The sample webinar's question uses the Webinar template: "What kind of sea creatures do you want to see? (optional)".
+
+### Success page
+- **Promo slot removed entirely** (no 20%-off card, no config flag needed for display; `show_promo` can be dropped from `webinar_config`).
+
+## Admin dashboard (`/admin`)
+
+### Setup panel
+- **New field: ABOUT THE ARTIST** — textarea between the registration question and the replay URL. Helper: "Collapsed by default on the landing page. Leave blank to hide the link." Persists to `webinar_config.artist_bio`. Read-only on COMPLETE like the rest of the panel.
+- **Removed: Agenda / tease copy field** (T-3 tease email step dropped). After "Designs received ✓", saving goes **straight to READY** — no agenda prerequisite. (The NEEDS AGENDA status still exists in the lifecycle; rename/remove is pending a product call.)
+- **Removed: promo toggle** (success-page promo cut).
+
+### Share links
+- Next to **Copy link for Yumer** (teal, filled): new outlined **Copy social link** button. Copies `https://webinars.facepaint.com/w/{webinarId}?src=social` — **no personal merge params**; social visitors land on the name+email fallback form and their registrations log with `source=social`.
+- After copying, links render labeled in monospace blocks: "FOR OMNISEND · merge tags baked in" vs "FOR SOCIAL · no personal params — visitors get the name+email form".
+
+## Schema deltas (Supabase `webinar_config`)
+- **Add** `artist_bio text` (nullable — null/empty hides the landing-page link)
+- **Drop** `show_promo` (promo removed)
+- No agenda column needed.
+
+## Sample content (for seeds/fixtures)
+- Sea Creatures webinar carries Yasmeen Hart's real bio (see the prototype's logic class in `Webinar Registration.dc.html` for the full approved text).
