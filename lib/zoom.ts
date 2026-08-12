@@ -97,9 +97,10 @@ export async function listWebinars(
 }
 
 /**
- * Webinar reports for the host user in a date range (max 1 month per Zoom's
- * API) — reaches further back than listWebinars("past"), bounded by Zoom's
- * report retention. Used to recover historical masterclass sessions.
+ * Past webinars account-wide in a date range (max 1 month per call) via the
+ * Dashboard API — reaches further back than listWebinars("past"), bounded by
+ * Zoom's dashboard retention (~6 months). Needs the dashboard webinars read
+ * scope. Used to recover historical masterclass sessions.
  */
 export async function listWebinarReports(
   from: string,
@@ -109,7 +110,7 @@ export async function listWebinarReports(
   let token = "";
   do {
     const res = await zoomFetch(
-      `/report/users/${encodeURIComponent(env.zoom.hostUserId)}/webinars?from=${from}&to=${to}&page_size=300${token ? `&next_page_token=${token}` : ""}`
+      `/metrics/webinars?type=past&from=${from}&to=${to}&page_size=300${token ? `&next_page_token=${encodeURIComponent(token)}` : ""}`
     );
     if (!res.ok) throw new Error(`listWebinarReports ${res.status}: ${await res.text()}`);
     const data = (await res.json()) as {
