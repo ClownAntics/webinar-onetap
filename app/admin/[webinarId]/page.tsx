@@ -5,7 +5,7 @@ import StatusPill from "../status-pill";
 import SetupPanel from "./setup-panel";
 import CopyButton from "./copy-button";
 import { appSupabase } from "@/lib/supabase";
-import { getWebinar, getRegistrantQuestions, fetchWebinarBanner } from "@/lib/zoom";
+import { getWebinar, getRegistrantQuestions } from "@/lib/zoom";
 import { cleanWebinarTitle } from "@/lib/format";
 import { computeOneWebinarMetrics } from "@/lib/reporting";
 import { STATUS_META, autoAdjust } from "@/lib/status";
@@ -62,11 +62,10 @@ async function loadDetail(webinarId: string): Promise<Detail> {
     getWebinar(webinarId).catch(() => null),
     getRegistrantQuestions(webinarId).catch(() => [] as string[]),
   ]);
-  // Only scrape the reg page for a banner when we don't already have one saved.
-  const zoomBanner =
-    !config?.banner_url && zw?.registration_url
-      ? await fetchWebinarBanner(zw.registration_url).catch(() => undefined)
-      : undefined;
+  // Zoom's API doesn't expose the registration-page banner image (branding is
+  // web-UI only, and the page's og:image is just the FP logo), so we don't
+  // auto-fill the banner — it's uploaded via Supabase Storage instead.
+  const zoomBanner = undefined;
 
   return {
     config,
