@@ -4,12 +4,14 @@ import { getEmployee } from "@/lib/auth";
 import { getWebinar } from "@/lib/zoom";
 import { fireEvent, upsertContact } from "@/lib/omnisend";
 import { nextStatusOnSave } from "@/lib/status";
+import { BRANDS, type Brand } from "@/lib/brands";
 import type { WebinarConfig, WebinarStatus } from "@/lib/types";
 
 export const runtime = "nodejs";
 
 interface SaveBody {
   webinarId: string;
+  brand?: Brand;
   display_title?: string;
   question_text?: string;
   zoom_question_title?: string;
@@ -57,6 +59,7 @@ export async function POST(req: NextRequest) {
     .not("question_answer", "is", null);
 
   const merged = {
+    brand: (BRANDS.includes(body.brand as Brand) ? body.brand : existing?.brand) ?? "facepaint",
     display_title: body.display_title ?? existing?.display_title ?? null,
     question_text: body.question_text ?? existing?.question_text ?? null,
     zoom_question_title: body.zoom_question_title ?? existing?.zoom_question_title ?? null,

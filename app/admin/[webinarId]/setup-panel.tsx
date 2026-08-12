@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import CopyButton from "./copy-button";
+import { BRANDS, BRAND_LABELS, type Brand } from "@/lib/brands";
 
 const cardStyle: React.CSSProperties = {
   background: "#fff",
@@ -31,6 +32,7 @@ const TEMPLATES: Record<string, (t: string) => string> = {
 
 export interface SetupInitial {
   webinarId: string;
+  brand: Brand;
   display_title: string;
   question_text: string;
   agenda: string;
@@ -40,6 +42,7 @@ export interface SetupInitial {
 }
 
 export default function SetupPanel(props: SetupInitial) {
+  const [brand, setBrand] = useState<Brand>(props.brand);
   const [displayTitle, setDisplayTitle] = useState(props.display_title);
   const [template, setTemplate] = useState("Custom");
   const [questionText, setQuestionText] = useState(props.question_text);
@@ -75,6 +78,7 @@ export default function SetupPanel(props: SetupInitial) {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         webinarId: props.webinarId,
+        brand,
         display_title: displayTitle,
         question_text: questionText,
         agenda,
@@ -113,6 +117,33 @@ export default function SetupPanel(props: SetupInitial) {
   return (
     <div style={cardStyle}>
       <div style={{ fontWeight: 800, fontSize: 15 }}>Setup</div>
+
+      <div>
+        <div style={labelStyle}>Organization</div>
+        <div style={{ display: "flex", gap: 8, marginTop: 4 }}>
+          {BRANDS.map((b) => (
+            <button
+              key={b}
+              type="button"
+              onClick={() => setBrand(b)}
+              style={{
+                flex: 1,
+                height: 38,
+                borderRadius: 10,
+                border: brand === b ? "2px solid #2f302f" : "1.5px solid #ddd",
+                background: brand === b ? "#2f302f" : "#fff",
+                color: brand === b ? "#fff" : "#555",
+                fontSize: 12.5,
+                fontWeight: 700,
+                cursor: "pointer",
+              }}
+            >
+              {BRAND_LABELS[b]}
+            </button>
+          ))}
+        </div>
+        <div style={helpStyle}>Sets the logo, colors, and mailing-list text on the landing page.</div>
+      </div>
 
       <div>
         <div style={labelStyle}>Display title</div>

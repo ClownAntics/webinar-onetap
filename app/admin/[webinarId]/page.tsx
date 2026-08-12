@@ -10,6 +10,7 @@ import { cleanWebinarTitle } from "@/lib/format";
 import { computeOneWebinarMetrics } from "@/lib/reporting";
 import { STATUS_META, autoAdjust } from "@/lib/status";
 import { env } from "@/lib/env";
+import { BRAND_LABELS } from "@/lib/brands";
 import type { WebinarConfig, WebinarMetrics, WebinarStatus } from "@/lib/types";
 
 export const dynamic = "force-dynamic";
@@ -132,6 +133,9 @@ export default async function WebinarDetail({
       <header style={{ background: "#2f302f", color: "#fff", padding: "14px 20px", display: "flex", alignItems: "center", gap: 14, flexWrap: "wrap" }}>
         <Link href="/admin" style={{ color: "#FCD700", fontWeight: 700 }}>← All webinars</Link>
         <span style={{ fontWeight: 800, fontSize: 17 }}>{d.topic}</span>
+        <span style={{ background: "rgba(255,255,255,0.15)", borderRadius: 999, padding: "3px 10px", fontSize: 11.5, fontWeight: 700 }}>
+          {BRAND_LABELS[d.config?.brand ?? "facepaint"]}
+        </span>
         <StatusPill status={status} />
         {d.startTime && (
           <span style={{ color: "#bbb", fontSize: 12.5 }}>
@@ -156,6 +160,7 @@ export default async function WebinarDetail({
           <div style={{ flex: "1 1 380px", minWidth: 320 }}>
             <SetupPanel
               webinarId={webinarId}
+              brand={d.config?.brand ?? "facepaint"}
               display_title={d.config?.display_title ?? (cleanWebinarTitle(d.rawTopic) || d.topic)}
               question_text={d.config?.question_text ?? d.zoomQuestion ?? ""}
               agenda={d.config?.agenda ?? d.zoomAgenda ?? ""}

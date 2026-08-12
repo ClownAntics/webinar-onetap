@@ -30,7 +30,7 @@ export const env = {
     anonKey: optional("NEXT_PUBLIC_SUPABASE_ANON_KEY"),
   },
   // Employees are gated by email domain (Google Workspace).
-  allowedDomains: (optional("ADMIN_ALLOWED_DOMAINS") ?? "clownantics.com,facepaint.com")
+  allowedDomains: (optional("ADMIN_ALLOWED_DOMAINS") ?? "clownantics.com,facepaint.com,careerlearning.com")
     .split(",")
     .map((d) => d.trim().toLowerCase())
     .filter(Boolean),

@@ -3,6 +3,7 @@
 import { useState } from "react";
 import Image from "next/image";
 import styles from "./registration.module.css";
+import { getBrand, type BrandTheme } from "@/lib/brands";
 import type { RegisterResult, WebinarConfig } from "@/lib/types";
 
 const CONFETTI = [
@@ -55,7 +56,8 @@ export default function RegistrationClient(props: {
   const [phase, setPhase] = useState<Phase>("form");
   const [result, setResult] = useState<RegisterResult | null>(null);
 
-  const title = config?.display_title ?? config?.zoom_topic ?? "FacePaint.com Webinar";
+  const brand = getBrand(config?.brand);
+  const title = config?.display_title ?? config?.zoom_topic ?? `${brand.name} Webinar`;
   const dateLabel = formatDate(config?.start_time);
   const missingEmail = !props.email;
 
@@ -97,13 +99,13 @@ export default function RegistrationClient(props: {
   }
 
   return (
-    <div className={styles.stage}>
+    <div className={styles.stage} style={brand.vars as React.CSSProperties}>
       {props.preview && (
         <div style={{ position: "fixed", top: 0, left: 0, right: 0, background: "#FCD700", color: "#2f302f", textAlign: "center", fontSize: 12, fontWeight: 800, letterSpacing: 1, padding: "5px", zIndex: 50 }}>
           PREVIEW — no one is registered
         </div>
       )}
-      {CONFETTI.map((c, i) => (
+      {brand.confetti && CONFETTI.map((c, i) => (
         <span
           key={i}
           className={styles.confetti}
@@ -119,7 +121,7 @@ export default function RegistrationClient(props: {
       ))}
 
       <div className={styles.column}>
-        <Image src="/fp-logo.jpg" alt="FacePaint.com" width={76} height={76} className={styles.logo} priority />
+        <BrandLogo brand={brand} />
         {dateLabel && <div className={styles.date}>{dateLabel}</div>}
         <h1 className={styles.title}>{title}</h1>
         {config?.banner_url && (
@@ -164,14 +166,14 @@ export default function RegistrationClient(props: {
               onChange={(e) => setAnswer(e.target.value)}
             />
 
+            {config?.agenda && <p className={styles.agenda}>{config.agenda}</p>}
+
             {!missingEmail && (
               <div className={styles.footer}>
                 Registering as {maskEmail(email)}
               </div>
             )}
-            <p className={styles.disclosure}>
-              By registering, you join the FacePaint.com mailing list. Unsubscribe anytime.
-            </p>
+            <p className={styles.disclosure}>{brand.disclosure}</p>
           </>
         )}
 
@@ -200,6 +202,19 @@ export default function RegistrationClient(props: {
           <ErrorState registrationUrl={props.registrationUrl} />
         )}
       </div>
+    </div>
+  );
+}
+
+function BrandLogo({ brand }: { brand: BrandTheme }) {
+  if (brand.logoSrc) {
+    return <Image src={brand.logoSrc} alt={brand.name} width={76} height={76} className={styles.logo} priority />;
+  }
+  // No logo file yet — brand-colored monogram keeps the page looking finished.
+  const initials = brand.name.replace(/\.com$/i, "").replace(/[a-z]/g, "").slice(0, 2) || brand.name[0];
+  return (
+    <div className={styles.logo} style={{ background: "var(--fp-yellow)", color: "var(--fp-cta-text)", display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 900, fontSize: 26 }}>
+      {initials}
     </div>
   );
 }

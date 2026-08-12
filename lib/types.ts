@@ -1,5 +1,7 @@
 // Shared domain types. Mirrors the Supabase schema in README-build-v3.md §4.
 
+import type { Brand } from "./brands";
+
 export type RegistrationSource = "sms" | "email" | "social" | "backfill";
 
 export type WebinarStatus =
@@ -23,6 +25,7 @@ export interface WebinarConfig {
   discount_code: string | null;
   discount_expiry: string | null; // ISO date
   status: WebinarStatus;
+  brand: Brand | null; // null on rows created before the 0002 migration
   zoom_topic: string | null;
   start_time: string | null; // ISO timestamptz
   end_time: string | null;

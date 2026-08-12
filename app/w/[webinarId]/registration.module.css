@@ -5,6 +5,9 @@
   position: relative;
   overflow: hidden;
   padding: 0 24px;
+  /* Brand themes override --fp-* vars inline on this element, so the page
+     background must be painted here, not only on <body>. */
+  background: var(--fp-bg);
 }
 
 .column {
@@ -60,7 +63,7 @@
   border: none;
   border-radius: var(--fp-radius-btn);
   background: var(--fp-yellow);
-  color: #2f302f;
+  color: var(--fp-cta-text);
   font-size: 20px;
   font-weight: 900;
   letter-spacing: 0.4px;
@@ -105,6 +108,14 @@
   text-align: center;
 }
 
+.agenda {
+  font-size: 13.5px;
+  line-height: 1.55;
+  color: var(--fp-text-65);
+  white-space: pre-line;
+  margin: 4px 0 0;
+}
+
 .disclosure {
   font-size: 11px;
   color: var(--fp-text-40);
@@ -118,7 +129,7 @@
   height: 80px;
   border-radius: 50%;
   background: var(--fp-yellow);
-  color: #2f302f;
+  color: var(--fp-cta-text);
   font-size: 40px;
   font-weight: 900;
   display: flex;
@@ -146,7 +157,7 @@
   height: 58px;
   border-radius: var(--fp-radius-input);
   background: var(--fp-yellow);
-  color: #2f302f;
+  color: var(--fp-cta-text);
   border: none;
   font-weight: 800;
   font-size: 16px;
