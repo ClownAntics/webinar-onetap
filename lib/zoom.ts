@@ -57,9 +57,29 @@ async function zoomFetch(path: string, init?: RequestInit) {
 export interface ZoomWebinar {
   id: string;
   topic: string;
+  agenda?: string; // the description shown on the Zoom registration page
   start_time: string;
   duration: number;
   registration_url?: string;
+}
+
+/**
+ * Best-effort: pull the banner image off the public registration page (Zoom's
+ * API doesn't expose the branding banner URL). Tries og:image first, then a
+ * banner-ish image. Returns undefined if nothing plausible is found.
+ */
+export async function fetchWebinarBanner(registrationUrl: string): Promise<string | undefined> {
+  try {
+    const res = await fetch(registrationUrl, { cache: "no-store" });
+    if (!res.ok) return undefined;
+    const html = await res.text();
+    const og = html.match(/<meta[^>]+property=["']og:image["'][^>]+content=["']([^"']+)["']/i);
+    if (og?.[1] && /^https?:\/\//.test(og[1])) return og[1];
+    const banner = html.match(/https:\/\/[^"'\s]+(?:banner|brand)[^"'\s]*\.(?:png|jpe?g|webp)/i);
+    return banner?.[0];
+  } catch {
+    return undefined;
+  }
 }
 
 /** List webinars for the shared host account. */

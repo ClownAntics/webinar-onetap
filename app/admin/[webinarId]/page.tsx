@@ -5,7 +5,8 @@ import StatusPill from "../status-pill";
 import SetupPanel from "./setup-panel";
 import CopyButton from "./copy-button";
 import { appSupabase } from "@/lib/supabase";
-import { getWebinar } from "@/lib/zoom";
+import { getWebinar, getRegistrantQuestions, fetchWebinarBanner } from "@/lib/zoom";
+import { cleanWebinarTitle } from "@/lib/format";
 import { computeOneWebinarMetrics } from "@/lib/reporting";
 import { STATUS_META, autoAdjust } from "@/lib/status";
 import { env } from "@/lib/env";
@@ -27,7 +28,11 @@ interface AttRow {
 interface Detail {
   config: WebinarConfig | null;
   topic: string;
+  rawTopic: string | null;
   startTime: string | null;
+  zoomAgenda?: string;
+  zoomQuestion?: string;
+  zoomBanner?: string;
   regEvents: RegEvent[];
   attendance: AttRow[];
   dbError?: string;
@@ -53,11 +58,24 @@ async function loadDetail(webinarId: string): Promise<Detail> {
     dbError = err instanceof Error ? err.message : String(err);
   }
 
-  const zw = await getWebinar(webinarId).catch(() => null);
+  const [zw, questions] = await Promise.all([
+    getWebinar(webinarId).catch(() => null),
+    getRegistrantQuestions(webinarId).catch(() => [] as string[]),
+  ]);
+  // Only scrape the reg page for a banner when we don't already have one saved.
+  const zoomBanner =
+    !config?.banner_url && zw?.registration_url
+      ? await fetchWebinarBanner(zw.registration_url).catch(() => undefined)
+      : undefined;
+
   return {
     config,
     topic: config?.display_title ?? config?.zoom_topic ?? zw?.topic ?? webinarId,
+    rawTopic: zw?.topic ?? config?.zoom_topic ?? null,
     startTime: config?.start_time ?? zw?.start_time ?? null,
+    zoomAgenda: zw?.agenda || undefined,
+    zoomQuestion: questions[0] || undefined,
+    zoomBanner,
     regEvents,
     attendance,
     dbError,
@@ -149,13 +167,13 @@ export default async function WebinarDetail({
           <div style={{ flex: "1 1 380px", minWidth: 320 }}>
             <SetupPanel
               webinarId={webinarId}
-              display_title={d.config?.display_title ?? d.topic}
-              question_text={d.config?.question_text ?? ""}
-              agenda={d.config?.agenda ?? ""}
+              display_title={d.config?.display_title ?? (cleanWebinarTitle(d.rawTopic) || d.topic)}
+              question_text={d.config?.question_text ?? d.zoomQuestion ?? ""}
+              agenda={d.config?.agenda ?? d.zoomAgenda ?? ""}
               replay_url={d.config?.replay_url ?? ""}
               discount_code={d.config?.discount_code ?? ""}
               discount_expiry={d.config?.discount_expiry ?? ""}
-              banner_url={d.config?.banner_url ?? ""}
+              banner_url={d.config?.banner_url ?? d.zoomBanner ?? ""}
               status={status}
               replayEnabled={endPassed}
               omnisendLink={omnisendLink}
