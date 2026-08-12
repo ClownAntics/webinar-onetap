@@ -53,10 +53,26 @@ export default function SetupPanel(props: SetupInitial) {
   const [discountExpiry, setDiscountExpiry] = useState(props.discount_expiry);
   const [bannerUrl, setBannerUrl] = useState(props.banner_url);
   const [saving, setSaving] = useState(false);
+  const [uploading, setUploading] = useState(false);
   const [msg, setMsg] = useState("");
 
   const readOnly = props.status === "COMPLETE";
   const firstTime = props.status === "NEEDS_SETUP";
+
+  async function uploadBanner(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setUploading(true);
+    setMsg("");
+    const fd = new FormData();
+    fd.append("file", file);
+    fd.append("webinarId", props.webinarId);
+    const res = await fetch("/api/admin/webinar/banner", { method: "POST", body: fd });
+    const data = await res.json().catch(() => ({}));
+    setUploading(false);
+    if (res.ok && data.url) setBannerUrl(data.url);
+    else setMsg(data.error ?? "Banner upload failed");
+  }
 
   async function save() {
     setSaving(true);
@@ -114,8 +130,27 @@ export default function SetupPanel(props: SetupInitial) {
       </div>
 
       <div>
-        <div style={labelStyle}>Banner URL (upload to Supabase Storage → paste public URL)</div>
-        <input style={inputStyle} value={bannerUrl} onChange={(e) => setBannerUrl(e.target.value)} placeholder="https://…/webinar-banners/…" />
+        <div style={labelStyle}>Banner</div>
+        {bannerUrl && (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img
+            src={bannerUrl}
+            alt="banner preview"
+            style={{ width: "100%", borderRadius: 10, marginBottom: 8, border: "1px solid #eee" }}
+          />
+        )}
+        <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+          <label style={{ ...smallBtn, display: "inline-flex", alignItems: "center", justifyContent: "center", cursor: "pointer", flex: "0 0 auto", padding: "0 14px" }}>
+            {uploading ? "Uploading…" : bannerUrl ? "Replace banner" : "Upload banner"}
+            <input type="file" accept="image/png,image/jpeg,image/webp,image/gif" onChange={uploadBanner} disabled={uploading} style={{ display: "none" }} />
+          </label>
+          {bannerUrl && (
+            <button type="button" onClick={() => setBannerUrl("")} style={{ background: "none", border: "none", color: "#B41F24", fontSize: 12.5, cursor: "pointer" }}>
+              Remove
+            </button>
+          )}
+        </div>
+        <div style={helpStyle}>PNG/JPG/WEBP, up to 8 MB. Recommended ~1280×400.</div>
       </div>
 
       <div>
