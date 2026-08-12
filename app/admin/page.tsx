@@ -125,9 +125,13 @@ export default async function AdminPage() {
       <div style={{ maxWidth: 880, margin: "0 auto", padding: 24 }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 8 }}>
           <h2 style={{ fontSize: 22, fontWeight: 800, margin: 0 }}>Webinars</h2>
-          <a href="/admin/trends" style={{ background: "#2f302f", color: "#FCD700", padding: "8px 14px", borderRadius: 8, fontSize: 13, fontWeight: 700, textDecoration: "none" }}>
-            📈 Trends &amp; revenue
-          </a>
+          <div style={{ display: "flex", gap: 14, alignItems: "center", flexWrap: "wrap" }}>
+            <a href="/help" style={{ color: "#0C84A4", fontSize: 13, fontWeight: 700, textDecoration: "none" }}>User guide</a>
+            <a href="/developer" style={{ color: "#0C84A4", fontSize: 13, fontWeight: 700, textDecoration: "none" }}>Developer</a>
+            <a href="/admin/trends" style={{ background: "#2f302f", color: "#FCD700", padding: "8px 14px", borderRadius: 8, fontSize: 13, fontWeight: 700, textDecoration: "none" }}>
+              📈 Trends &amp; revenue
+            </a>
+          </div>
         </div>
         <p style={{ color: "#666", fontSize: 13 }}>
           Pulled from Zoom (service@facepaint.com) — create webinars there as usual.
