@@ -65,6 +65,17 @@ export function nextStatusOnSave(current: WebinarStatus, s: StatusSignals): Webi
   return autoAdjust(next, { answersCount: s.answersCount, endPassed: s.endPassed });
 }
 
+/**
+ * A webinar "needs your attention" only if it's red/amber AND still actionable.
+ * A never-configured webinar whose date has passed is not actionable.
+ */
+export function isActionable(status: WebinarStatus, isPast: boolean): boolean {
+  const tone = STATUS_META[status].tone;
+  if (!["red", "amber"].includes(tone)) return false;
+  if (status === "NEEDS_SETUP" && isPast) return false;
+  return true;
+}
+
 export type ManualAction = "emailed_artist" | "designs_received";
 
 /** Manual small-button transitions. */

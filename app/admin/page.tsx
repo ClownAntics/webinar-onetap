@@ -1,25 +1,13 @@
 import Link from "next/link";
 import LoginGate from "./login-gate";
 import { getEmployee } from "@/lib/auth";
-import StatusPill from "./status-pill";
+import DashboardTabs, { type CardData } from "./dashboard-tabs";
 import { listWebinars, getTrackingSources, type TrackingSource } from "@/lib/zoom";
 import { appSupabase } from "@/lib/supabase";
-import { STATUS_META, autoAdjust } from "@/lib/status";
+import { autoAdjust, isActionable } from "@/lib/status";
 import type { WebinarStatus } from "@/lib/types";
 
 export const dynamic = "force-dynamic";
-
-interface CardData {
-  id: string;
-  title: string;
-  startTime: string | null;
-  bannerUrl: string | null;
-  status: WebinarStatus;
-  registered: number | null; // from Zoom tracking sources; null = not fetched
-  sources: { name: string; count: number }[];
-  attended: number;
-  isPast: boolean;
-}
 
 // Only pull live Zoom stats for upcoming / recently-ended webinars (bounds API calls).
 const RECENT_MS = 60 * 24 * 60 * 60 * 1000;
@@ -89,8 +77,8 @@ async function loadDashboard(): Promise<{ cards: CardData[]; zoomError?: string;
       bannerUrl: c?.banner_url ?? null,
       status,
       registered: src ? src.reduce((s, x) => s + x.registration_count, 0) : null,
+      // Keep all channels (incl. SMS at 0), highest first.
       sources: (src ?? [])
-        .filter((x) => x.registration_count > 0)
         .map((x) => ({ name: x.source_name, count: x.registration_count }))
         .sort((a, b) => b.count - a.count),
       attended: attended.get(id) ?? 0,
@@ -106,9 +94,10 @@ export default async function AdminPage() {
 
   const { cards, zoomError, dbError } = await loadDashboard();
 
-  const needsAttention = cards.filter(actionable).sort(byDateAsc);
-  const upcoming = cards.filter((c) => !actionable(c) && !c.isPast).sort(byDateAsc);
-  const past = cards.filter((c) => !actionable(c) && c.isPast).sort(byDateDesc);
+  const act = (c: CardData) => isActionable(c.status, c.isPast);
+  const needsAttention = cards.filter(act).sort(byDateAsc);
+  const upcoming = cards.filter((c) => !act(c) && !c.isPast).sort(byDateAsc);
+  const past = cards.filter((c) => !act(c) && c.isPast).sort(byDateDesc);
 
   return (
     <main style={{ minHeight: "100vh", background: "#f5f4f0", color: "#2f302f" }}>
@@ -140,29 +129,14 @@ export default async function AdminPage() {
         {zoomError && <Notice text={`Zoom not reachable (${zoomError}). Wire ZOOM_* env vars.`} />}
         {dbError && <Notice text={`App Supabase not reachable (${dbError}). Wire SUPABASE_* env vars.`} />}
 
-        <Group title="Needs your attention" color="#8a6d00" cards={needsAttention} />
-        <Group title="Upcoming" cards={upcoming} />
-        <Group title="Past" cards={past} />
-
-        {cards.length === 0 && !zoomError && !dbError && (
+        {cards.length === 0 && !zoomError && !dbError ? (
           <div style={{ color: "#888", fontSize: 14, marginTop: 16 }}>No webinars found.</div>
+        ) : (
+          <DashboardTabs attention={needsAttention} upcoming={upcoming} past={past} />
         )}
       </div>
     </main>
   );
-}
-
-/**
- * A card "needs your attention" only if it's red/amber AND still actionable.
- * A never-configured webinar whose date has already passed is NOT actionable
- * (you won't set up a past webinar for one-tap) — it drops to Past instead of
- * cluttering the attention list.
- */
-function actionable(c: CardData): boolean {
-  const tone = STATUS_META[c.status].tone;
-  if (!["red", "amber"].includes(tone)) return false;
-  if (c.status === "NEEDS_SETUP" && c.isPast) return false;
-  return true;
 }
 
 function byDateAsc(a: CardData, b: CardData) {
@@ -180,64 +154,3 @@ function Notice({ text }: { text: string }) {
   );
 }
 
-function Group({ title, cards, color }: { title: string; cards: CardData[]; color?: string }) {
-  if (cards.length === 0) return null;
-  return (
-    <section style={{ marginTop: 24 }}>
-      <div style={{ fontSize: 12.5, fontWeight: 800, letterSpacing: 1, textTransform: "uppercase", color: color ?? "#999", marginBottom: 10 }}>
-        {title}
-      </div>
-      <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-        {cards.map((c) => <Card key={c.id} c={c} />)}
-      </div>
-    </section>
-  );
-}
-
-function Card({ c }: { c: CardData }) {
-  const meta = STATUS_META[c.status];
-  const showRate = c.registered && c.registered > 0 ? Math.round((c.attended / c.registered) * 100) : 0;
-  const needsAttention = actionable(c);
-  return (
-    <a href={`/admin/${c.id}`} style={{ display: "flex", gap: 14, background: "#fff", borderRadius: 16, border: "1px solid #eee", padding: 14, textDecoration: "none", color: "inherit" }}>
-      {/* banner thumb */}
-      <div style={{ width: 92, height: 52, borderRadius: 8, flexShrink: 0, background: c.bannerUrl ? `center/cover url(${c.bannerUrl})` : "#e6e4df", display: "flex", alignItems: "center", justifyContent: "center", color: "#aaa", fontSize: 10 }}>
-        {!c.bannerUrl && "no banner"}
-      </div>
-
-      <div style={{ flex: 1, minWidth: 0 }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
-          <span style={{ fontWeight: 800, fontSize: 15, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", maxWidth: "100%" }}>{c.title}</span>
-          <StatusPill status={c.status} />
-        </div>
-        <div style={{ color: "#888", fontSize: 12.5, marginTop: 2 }}>
-          {c.startTime ? `${new Date(c.startTime).toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric", timeZone: "America/New_York" })}` : "date TBD"}
-        </div>
-
-        {/* stat chips */}
-        <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginTop: 8, fontSize: 11.5 }}>
-          {c.registered != null && <span style={chip}>👥 <b>{c.registered}</b> registered</span>}
-          {c.sources.slice(0, 4).map((s) => (
-            <span key={s.name} style={chip}>{s.name} {s.count}</span>
-          ))}
-          {c.isPast && c.attended > 0 && (
-            <span style={{ ...chip, background: "#E8F5E1", color: "#3c7d2b" }}>✅ {c.attended}{c.registered ? ` (${showRate}%)` : ""}</span>
-          )}
-        </div>
-
-        {needsAttention && (
-          <div style={{ marginTop: 8, background: "#FFF6D6", color: "#8a6d00", borderRadius: 8, padding: "5px 10px", fontSize: 12 }}>
-            → {meta.hint}
-          </div>
-        )}
-      </div>
-    </a>
-  );
-}
-
-const chip: React.CSSProperties = {
-  background: "#F0EEE9",
-  borderRadius: 999,
-  padding: "3px 9px",
-  color: "#555",
-};

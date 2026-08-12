@@ -99,9 +99,8 @@ export default async function WebinarDetail({
   // (the app DB only sees people who registered through the app).
   const zoomVisitors = d.trackingSources.reduce((s, x) => s + x.visitor_count, 0);
   const registered = d.trackingSources.reduce((s, x) => s + x.registration_count, 0);
-  const sources = d.trackingSources
-    .filter((x) => x.registration_count > 0 || x.visitor_count > 0)
-    .sort((a, b) => b.registration_count - a.registration_count);
+  // Show all channels (incl. SMS at 0), highest registrations first.
+  const sources = [...d.trackingSources].sort((a, b) => b.registration_count - a.registration_count);
 
   const answers = d.regEvents
     .filter((r) => r.question_answer && r.question_answer.trim())
