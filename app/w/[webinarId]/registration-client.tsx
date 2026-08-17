@@ -61,7 +61,9 @@ export default function RegistrationClient(props: {
   const brand = getBrand(props.preview && props.previewBrand ? props.previewBrand : config?.brand);
   const title = config?.display_title ?? config?.zoom_topic ?? `${brand.name} Webinar`;
   const dateLabel = formatDate(config?.start_time);
-  const missingEmail = !props.email;
+  // "Not you?" at the bottom flips the personalized page into manual entry.
+  const [manualEntry, setManualEntry] = useState(false);
+  const missingEmail = !props.email || manualEntry;
 
   async function register() {
     if (!email) return;
@@ -176,6 +178,20 @@ export default function RegistrationClient(props: {
               </div>
             )}
             <p className={styles.disclosure}>{brand.disclosure}</p>
+            {!missingEmail && (
+              <button
+                type="button"
+                className={styles.secondaryBtn}
+                style={{ height: 48, fontSize: 14.5 }}
+                onClick={() => {
+                  setEmail("");
+                  setFirstName("");
+                  setManualEntry(true);
+                }}
+              >
+                Not {firstName || "you"}? Use a different email
+              </button>
+            )}
           </>
         )}
 
