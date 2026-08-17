@@ -62,14 +62,25 @@ gathered by Yumer's post-registration opt-in flow.
 - Features above get built and tested on `staging`; merged to `master` only on
   Blake's go.
 
-## Needed from Blake before build starts
+## Prerequisites — ALL DONE (2026-08-17)
 
-1. **Omnisend API keys** (sensitive → Blake sets in Vercel, both Production AND
-   Preview environments): `OMNISEND_API_KEY_FACEPAINT`, `OMNISEND_API_KEY_CLOWNANTICS`.
-2. In Vercel → Settings → Environment Variables: enable the existing secrets
-   (SUPABASE_SERVICE_KEY, ZOOM_*, SALES_*) for the **Preview** environment so the
-   staging deployment can run.
-3. A designated TEST webinar in Zoom (any future date, name it "TEST — do not join").
+1. ✅ Omnisend API keys set: `OMNISEND_API_KEY_FACEPAINT`, `OMNISEND_API_KEY_CLOWNANTICS`
+   (Blake set values; Claude extended both to Preview via the Vercel API).
+2. ✅ All env vars now cover Preview (secrets retargeted via API without exposing values).
+3. ✅ TEST webinar: **87555460720** ("TEST — do not join", 2026-12-31, registration
+   required, optional custom question). All staging testing registers against this ID.
+
+## Staging environment facts
+
+- **URL:** https://webinar-onetap-staging.vercel.app (stable alias; re-point after each
+  staging deploy with `vercel alias set <deployment-url> webinar-onetap-staging.vercel.app`).
+- The Vercel project has **NO git integration** — staging deploys are CLI:
+  `git checkout staging && vercel deploy` (no `--prod`), then re-point the alias.
+- **Deployment Protection (Vercel Authentication) is DISABLED** project-wide so
+  Yumer/Blake can open previews without Vercel accounts (matches production's
+  public posture).
+- Verified working end-to-end: landing page 200, live registration against the TEST
+  webinar returned a personal join_url.
 
 ## Needed from Yumer after build
 
