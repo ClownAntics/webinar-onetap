@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { appSupabase } from "@/lib/supabase";
 import { getEmployee } from "@/lib/auth";
-import { getWebinar } from "@/lib/zoom";
+import { getWebinar, getRegistrantQuestions } from "@/lib/zoom";
 import { fireEvent, upsertContact } from "@/lib/omnisend";
 import { nextStatusOnSave } from "@/lib/status";
 import { BRANDS, type Brand } from "@/lib/brands";
@@ -69,6 +69,14 @@ export async function POST(req: NextRequest) {
     discount_code: body.discount_code ?? existing?.discount_code ?? null,
     discount_expiry: body.discount_expiry || existing?.discount_expiry || null,
   };
+
+  // The answer only reaches Zoom if we know Zoom's exact question title
+  // (custom_questions match by title). The Setup UI never sends it, so
+  // capture it from Zoom on save whenever it's missing.
+  if (!merged.zoom_question_title) {
+    const questions = await getRegistrantQuestions(body.webinarId).catch(() => [] as string[]);
+    merged.zoom_question_title = questions[0] ?? null;
+  }
 
   const replayNewlySet =
     !existing?.replay_url && !!merged.replay_url && merged.replay_url.trim().length > 0;
