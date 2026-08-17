@@ -22,6 +22,30 @@ function maskEmail(email: string): string {
   return `${user[0]}•••@${domain}`;
 }
 
+/**
+ * "george" -> "George", "mary jane" -> "Mary Jane", "anne-marie" -> "Anne-Marie".
+ * Words that are already mixed-case (McDonald, DeShawn) are left as typed.
+ */
+function properCase(name: string): string {
+  return name
+    .trim()
+    .split(/\s+/)
+    .map((word) =>
+      word
+        .split("-")
+        .map((part) => {
+          if (part === part.toLowerCase() || part === part.toUpperCase()) {
+            return part.charAt(0).toUpperCase() + part.slice(1).toLowerCase();
+          }
+          return part; // intentional mixed case
+        })
+        .join("-")
+    )
+    .join(" ");
+}
+
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
+
 function formatDate(iso?: string | null): string {
   if (!iso) return "";
   const d = new Date(iso);
@@ -57,6 +81,7 @@ export default function RegistrationClient(props: {
   const [answer, setAnswer] = useState("");
   const [phase, setPhase] = useState<Phase>("form");
   const [result, setResult] = useState<RegisterResult | null>(null);
+  const [formError, setFormError] = useState("");
 
   const brand = getBrand(props.preview && props.previewBrand ? props.previewBrand : config?.brand);
   const title = config?.display_title ?? config?.zoom_topic ?? `${brand.name} Webinar`;
@@ -67,6 +92,12 @@ export default function RegistrationClient(props: {
 
   async function register() {
     if (!email) return;
+    if (!EMAIL_RE.test(email.trim())) {
+      setFormError("That email doesn't look right — please double-check it.");
+      setManualEntry(true); // expose the inputs if the URL email was bad
+      return;
+    }
+    setFormError("");
     // Preview mode (admin "Preview" button): show the success screen without
     // actually registering anyone.
     if (props.preview) {
@@ -81,8 +112,8 @@ export default function RegistrationClient(props: {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           webinarId,
-          email,
-          firstName,
+          email: email.trim(),
+          firstName: properCase(firstName),
           lastName,
           source: props.source,
           answer,
@@ -149,13 +180,22 @@ export default function RegistrationClient(props: {
                   placeholder="Email"
                   type="email"
                   value={email}
-                  onChange={(e) => setEmail(e.target.value)}
+                  onChange={(e) => {
+                    setEmail(e.target.value);
+                    if (formError) setFormError("");
+                  }}
                 />
               </>
             ) : (
               <p className={styles.greeting}>
-                Hi {firstName || "there"}! One tap and you&apos;re in.
+                Hi {properCase(firstName) || "there"}! One tap and you&apos;re in.
               </p>
+            )}
+
+            {formError && (
+              <div style={{ color: "#ff6b6b", fontSize: 13.5, fontWeight: 700, textAlign: "center" }}>
+                {formError}
+              </div>
             )}
 
             <button className={styles.cta} onClick={register} disabled={!email}>
@@ -189,7 +229,7 @@ export default function RegistrationClient(props: {
                   setManualEntry(true);
                 }}
               >
-                Not {firstName || "you"}? Use a different email
+                Not {properCase(firstName) || "you"}? Use a different email
               </button>
             )}
           </>
@@ -206,7 +246,7 @@ export default function RegistrationClient(props: {
           <>
             <div className={styles.check}>✓</div>
             <h2 className={styles.title} style={{ fontSize: 27 }}>
-              You&apos;re in, {firstName || "friend"}! 🎉
+              You&apos;re in, {properCase(firstName) || "friend"}! 🎉
             </h2>
             {dateLabel && <div className={styles.date}>{dateLabel}</div>}
             <CalendarButtons title={title} startTime={config?.start_time} joinUrl={result?.joinUrl} />
