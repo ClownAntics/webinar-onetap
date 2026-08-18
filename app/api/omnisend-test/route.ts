@@ -21,7 +21,11 @@ export async function POST(req: NextRequest) {
   if (probe) {
     const { env } = await import("@/lib/env");
     const apiKey = env.omnisend.keys[(brand as string) ?? "facepaint"];
-    if (!apiKey) return NextResponse.json({ probe: "no key configured for brand" });
+    const keyLens = {
+      facepaint: (process.env.OMNISEND_API_KEY_FACEPAINT ?? "").length,
+      clownantics: (process.env.OMNISEND_API_KEY_CLOWNANTICS ?? "").length,
+    };
+    if (!apiKey) return NextResponse.json({ probe: "no key configured for brand", keyLens });
     const res = await fetch("https://api.omnisend.com/v5/contacts", {
       method: "POST",
       headers: { "Content-Type": "application/json", "X-API-KEY": apiKey },
