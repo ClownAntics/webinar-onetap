@@ -77,7 +77,7 @@ export default function RegistrationClient(props: {
   const { webinarId, config } = props;
   const [email, setEmail] = useState(props.email);
   const [firstName, setFirstName] = useState(props.firstName);
-  const [lastName] = useState(props.lastName);
+  const [lastName, setLastName] = useState(props.lastName);
   const [answer, setAnswer] = useState("");
   const [phase, setPhase] = useState<Phase>("form");
   const [result, setResult] = useState<RegisterResult | null>(null);
@@ -129,7 +129,7 @@ export default function RegistrationClient(props: {
           webinarId,
           email: email.trim(),
           firstName: properCase(firstName),
-          lastName,
+          lastName: properCase(lastName),
           source: props.source,
           answer,
         }),
@@ -192,6 +192,12 @@ export default function RegistrationClient(props: {
                 />
                 <input
                   className={styles.input}
+                  placeholder="Last name"
+                  value={lastName}
+                  onChange={(e) => setLastName(e.target.value)}
+                />
+                <input
+                  className={styles.input}
                   placeholder="Email"
                   type="email"
                   value={email}
@@ -241,6 +247,7 @@ export default function RegistrationClient(props: {
                 onClick={() => {
                   setEmail("");
                   setFirstName("");
+                  setLastName("");
                   setManualEntry(true);
                 }}
               >

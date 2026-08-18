@@ -12,9 +12,25 @@ export const runtime = "nodejs";
  * Safe: creates/updates only the contact you pass in.
  */
 export async function POST(req: NextRequest) {
-  const { email, brand } = (await req.json().catch(() => ({}))) as { email?: string; brand?: Brand };
+  const { email, brand, probe } = (await req.json().catch(() => ({}))) as { email?: string; brand?: Brand; probe?: boolean };
   if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email)) {
     return NextResponse.json({ error: "valid email required" }, { status: 400 });
+  }
+
+  // probe: raw Omnisend call surfacing the actual status + error body.
+  if (probe) {
+    const { env } = await import("@/lib/env");
+    const apiKey = env.omnisend.keys[(brand as string) ?? "facepaint"];
+    if (!apiKey) return NextResponse.json({ probe: "no key configured for brand" });
+    const res = await fetch("https://api.omnisend.com/v5/contacts", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "X-API-KEY": apiKey },
+      body: JSON.stringify({
+        identifiers: [{ type: "email", id: email, channels: { email: { status: "subscribed", statusDate: new Date().toISOString() } } }],
+      }),
+      cache: "no-store",
+    });
+    return NextResponse.json({ probe: res.status, body: (await res.text()).slice(0, 400) });
   }
   const w = {
     webinarId: "87555460720",
