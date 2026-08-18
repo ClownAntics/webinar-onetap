@@ -114,7 +114,7 @@ export default function RegistrationClient(props: {
           webinarId,
           email: email.trim(),
           firstName: properCase(firstName),
-          lastName,
+          lastName: properCase(lastName),
           source: props.source,
           answer,
         }),
