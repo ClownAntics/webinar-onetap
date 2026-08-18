@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { appSupabase } from "@/lib/supabase";
-import { upsertContact } from "@/lib/omnisend";
+import { markOptedOut } from "@/lib/omnisend";
 
 export const runtime = "nodejs";
 
@@ -14,7 +14,7 @@ export async function POST(req: NextRequest) {
     /* scaffold: Supabase optional */
   }
   try {
-    await upsertContact({ email, tags: ["webinar-optout"] });
+    await markOptedOut(email);
   } catch {
     /* ignore */
   }

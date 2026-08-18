@@ -29,6 +29,7 @@ async function loadDashboard(): Promise<{ cards: CardData[]; zoomError?: string;
   const attended = new Map<string, number>();
   const answers = new Map<string, number>();
   const revenue = new Map<string, number>();
+  const appRegs = new Map<string, Map<string, Set<string>>>();
   let dbError: string | undefined;
   try {
     const sb = appSupabase();
@@ -39,8 +40,8 @@ async function loadDashboard(): Promise<{ cards: CardData[]; zoomError?: string;
       fetchAllRows<{ webinar_id: string; attended: boolean }>((from, to) =>
         sb.from("webinar_attendance").select("webinar_id, attended").order("id").range(from, to)
       ),
-      fetchAllRows<{ webinar_id: string; question_answer: string | null }>((from, to) =>
-        sb.from("webinar_reg_events").select("webinar_id, question_answer").order("id").range(from, to)
+      fetchAllRows<{ webinar_id: string; question_answer: string | null; source: string | null; email: string; status: string | null }>((from, to) =>
+        sb.from("webinar_reg_events").select("webinar_id, question_answer, source, email, status").order("id").range(from, to)
       ),
     ]);
     // Revenue chips come from the webinar_summary cache (refreshed by cron).
@@ -52,6 +53,17 @@ async function loadDashboard(): Promise<{ cards: CardData[]; zoomError?: string;
       if (s.total_revenue_within_window != null) revenue.set(s.webinar_id, Number(s.total_revenue_within_window));
     for (const c of cfgRows) configs.set(c.webinar_id, c);
     for (const r of attRows) if (r.attended) attended.set(r.webinar_id, (attended.get(r.webinar_id) ?? 0) + 1);
+    // One-tap registrations by source (unique emails; Zoom's tracking counts
+    // can't see API registrations, so the app is the source of truth here).
+    for (const r of ansRows) {
+      if (r.status !== "success" || r.source === "backfill") continue;
+      const perSrc = appRegs.get(r.webinar_id) ?? new Map<string, Set<string>>();
+      const src = r.source ?? "other";
+      const set = perSrc.get(src) ?? new Set<string>();
+      set.add(r.email.toLowerCase());
+      perSrc.set(src, set);
+      appRegs.set(r.webinar_id, perSrc);
+    }
     for (const r of ansRows)
       if (r.question_answer && String(r.question_answer).trim())
         answers.set(r.webinar_id, (answers.get(r.webinar_id) ?? 0) + 1);
@@ -97,6 +109,16 @@ async function loadDashboard(): Promise<{ cards: CardData[]; zoomError?: string;
     const status = autoAdjust(stored, { answersCount: answers.get(id) ?? 0, endPassed });
     const src = statsById.get(id) ?? null;
     const topicRaw = c?.zoom_topic ?? c?.display_title ?? z?.topic ?? "";
+    // One-tap registrations (unique emails per source) — invisible to Zoom's
+    // tracking counts, so they're added on top.
+    const perSrc = appRegs.get(id);
+    const appSources = [...(perSrc ?? new Map<string, Set<string>>())]
+      .map(([name, set]) => ({ name, count: set.size }))
+      .sort((a, b) => b.count - a.count);
+    const appUnique = perSrc
+      ? new Set([...perSrc.values()].flatMap((s) => [...s])).size
+      : 0;
+    const trackingTotal = src ? src.reduce((s, x) => s + x.registration_count, 0) : null;
     return {
       id,
       title: c?.display_title ?? c?.zoom_topic ?? z?.topic ?? id,
@@ -105,11 +127,12 @@ async function loadDashboard(): Promise<{ cards: CardData[]; zoomError?: string;
       status,
       brand: c?.brand ?? "facepaint",
       isMasterclass: /master ?class/i.test(topicRaw),
-      registered: src ? src.reduce((s, x) => s + x.registration_count, 0) : null,
+      registered: trackingTotal == null && appUnique === 0 ? null : (trackingTotal ?? 0) + appUnique,
       // Keep all channels (incl. SMS at 0), highest first.
       sources: (src ?? [])
         .map((x) => ({ name: x.source_name, count: x.registration_count }))
         .sort((a, b) => b.count - a.count),
+      appSources,
       attended: attended.get(id) ?? 0,
       isPast: endPassed,
       revenue7d: revenue.get(id) ?? null,

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Image from "next/image";
 import styles from "./registration.module.css";
 import { getBrand, type BrandTheme } from "@/lib/brands";
@@ -89,6 +89,21 @@ export default function RegistrationClient(props: {
   // "Not you?" at the bottom flips the personalized page into manual entry.
   const [manualEntry, setManualEntry] = useState(false);
   const missingEmail = !props.email || manualEntry;
+
+  // Visit beacon — the denominator for per-source conversion rates. Client-side
+  // so link scanners/bots don't count; preview loads excluded.
+  useEffect(() => {
+    if (props.preview) return;
+    const payload = JSON.stringify({ webinarId, source: props.source });
+    try {
+      if (!navigator.sendBeacon?.("/api/visit", new Blob([payload], { type: "application/json" }))) {
+        fetch("/api/visit", { method: "POST", headers: { "Content-Type": "application/json" }, body: payload, keepalive: true }).catch(() => {});
+      }
+    } catch {
+      /* never break the page over analytics */
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   async function register() {
     if (!email) return;

@@ -39,7 +39,13 @@ export const env = {
     key: optional("SALES_SUPABASE_KEY"),
   },
   omnisend: {
-    apiKey: optional("OMNISEND_API_KEY"),
+    apiKey: optional("OMNISEND_API_KEY"), // legacy single-key (unused)
+    // Per-brand accounts. CareerLearning has none (their email is on Fresh).
+    keys: {
+      facepaint: optional("OMNISEND_API_KEY_FACEPAINT"),
+      clownantics: optional("OMNISEND_API_KEY_CLOWNANTICS"),
+      careerlearning: undefined,
+    } as Record<string, string | undefined>,
   },
   siteUrl: optional("NEXT_PUBLIC_SITE_URL") ?? "https://webinars.facepaint.com",
 };

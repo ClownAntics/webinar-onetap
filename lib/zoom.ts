@@ -195,6 +195,7 @@ export interface ZoomRegistrant {
   email: string;
   first_name?: string;
   last_name?: string;
+  join_url?: string; // personal join link — present in the registrants listing
 }
 
 /** All registrants for a webinar (paginated). */

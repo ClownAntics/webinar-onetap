@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { addRegistrant } from "@/lib/zoom";
 import { appSupabase } from "@/lib/supabase";
-import { fireEvent, upsertContact } from "@/lib/omnisend";
+import { pushRegistration } from "@/lib/omnisend";
+import type { Brand } from "@/lib/brands";
 import type { RegisterRequest, RegisterResult } from "@/lib/types";
 
 export const runtime = "nodejs";
@@ -31,17 +32,19 @@ export async function POST(req: NextRequest): Promise<NextResponse<RegisterResul
   let questionTitle: string | null = null;
   let title: string | undefined;
   let startTime: string | undefined;
+  let brand: Brand = "facepaint";
   try {
     const sb = appSupabase();
     const { data } = await sb
       .from("webinar_config")
-      .select("zoom_question_title, display_title, zoom_topic, start_time")
+      .select("zoom_question_title, display_title, zoom_topic, start_time, brand")
       .eq("webinar_id", webinarId)
       .maybeSingle();
     if (data) {
       questionTitle = data.zoom_question_title;
       title = data.display_title ?? data.zoom_topic ?? undefined;
       startTime = data.start_time ?? undefined;
+      brand = (data.brand as Brand) ?? "facepaint";
     }
   } catch {
     /* Supabase not configured in scaffold — continue */
@@ -54,7 +57,9 @@ export async function POST(req: NextRequest): Promise<NextResponse<RegisterResul
     const result = await addRegistrant(webinarId, {
       email,
       first_name: firstName || "-",
-      last_name: lastName || "-",
+      // Last names are unused everywhere (Blake+Yumer 2026-08-17) — send
+      // empty rather than a "-" placeholder that clutters Zoom exports.
+      last_name: lastName ?? "",
       custom_questions:
         questionTitle && answer ? [{ title: questionTitle, value: answer }] : undefined,
     });
@@ -85,18 +90,26 @@ export async function POST(req: NextRequest): Promise<NextResponse<RegisterResul
     /* ignore logging failures in scaffold */
   }
 
-  // 4) Omnisend event + contact (best-effort).
-  try {
-    await upsertContact({ email, firstName, tags: [`webinar-${webinarId}`, `src-${source}`] });
-    await fireEvent("webinar_registered", email, {
-      webinar_id: webinarId,
-      title,
-      start_time: startTime,
-      join_url: joinUrl!,
-      source,
-    });
-  } catch {
-    /* ignore */
+  // 4) Omnisend: contact + "webinar registered" event (SPEC-omnisend-sms.md).
+  //    Best-effort — registration never fails on Omnisend; the cron sweep is
+  //    the retry path and also logs successful pushes for idempotency.
+  if (status === "success") {
+    try {
+      const ok = await pushRegistration(
+        { webinarId, topic: title ?? webinarId, startTime: startTime ?? null, brand },
+        { email, firstName }
+      );
+      if (ok) {
+        await appSupabase()
+          .from("webinar_send_log")
+          .upsert(
+            [{ webinar_id: webinarId, send_type: "omnisend_registered", email: email.toLowerCase() }],
+            { onConflict: "webinar_id,send_type,email", ignoreDuplicates: true }
+          );
+      }
+    } catch (err) {
+      console.error("[register] omnisend push failed:", err instanceof Error ? err.message : err);
+    }
   }
 
   return NextResponse.json({ status, joinUrl: joinUrl!, title, startTime });

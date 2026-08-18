@@ -1,62 +1,147 @@
 import { env } from "./env";
+import type { Brand } from "./brands";
 
 /**
- * Minimal Omnisend client. Events drive Yumer's 5 automations
- * (README-build-v3.md §5). No-ops (with a warning) when unconfigured so the
- * scaffold runs without an API key.
+ * Omnisend client (API v5) — per-brand accounts (SPEC-omnisend-sms.md).
+ * FacePaint + Clownantics have keys; CareerLearning no-ops.
+ *
+ * Data model (agreed 2026-08-17): custom EVENTS for history + flow triggers,
+ * rolling contact PROPERTIES for state, one permanent tag. NOT per-webinar tags.
+ *   events:     "webinar registered", "webinar attended", "webinar starting"
+ *   properties: lastWebinarRegistered, lastWebinarAttended, webinarsAttendedCount
+ *   tag:        webinar-audience
  */
-type OmnisendEvent =
-  | "webinar_registered"
-  | "webinar_tease_due"
-  | "webinar_reminder_due"
-  | "webinar_attended"
-  | "webinar_noshow";
 
 const API = "https://api.omnisend.com/v5";
 
-async function omnisend(path: string, body: unknown) {
-  if (!env.omnisend.apiKey) {
-    console.warn(`[omnisend] not configured — skipping ${path}`);
-    return;
-  }
+function keyFor(brand: Brand | string | null | undefined): string | undefined {
+  return env.omnisend.keys[(brand as string) ?? "facepaint"];
+}
+
+/** Whether this brand has an Omnisend account wired (CareerLearning doesn't). */
+export function hasOmnisend(brand: Brand | string | null | undefined): boolean {
+  return !!keyFor(brand);
+}
+
+async function omnisend(apiKey: string, path: string, body: unknown): Promise<boolean> {
   const res = await fetch(`${API}${path}`, {
     method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      "X-API-KEY": env.omnisend.apiKey,
-    },
+    headers: { "Content-Type": "application/json", "X-API-KEY": apiKey },
     body: JSON.stringify(body),
     cache: "no-store",
   });
   if (!res.ok) {
-    console.error(`[omnisend] ${path} -> ${res.status}: ${await res.text()}`);
+    console.error(`[omnisend] ${path} -> ${res.status}: ${(await res.text()).slice(0, 300)}`);
+    return false;
   }
+  return true;
 }
 
-/** Fire a custom event for a contact. */
-export async function fireEvent(
-  event: OmnisendEvent,
+export interface WebinarEventInfo {
+  webinarId: string;
+  topic: string;
+  /** ISO start time of the webinar. */
+  startTime: string | null;
+  brand: Brand;
+}
+
+/** Upsert the contact (email subscribed per landing-page disclosure). */
+async function upsertContact(
+  apiKey: string,
+  email: string,
+  firstName: string | undefined,
+  properties: Record<string, unknown>
+): Promise<boolean> {
+  return omnisend(apiKey, "/contacts", {
+    identifiers: [
+      { type: "email", id: email, channels: { email: { status: "subscribed", statusDate: new Date().toISOString() } } },
+    ],
+    ...(firstName ? { firstName } : {}),
+    tags: ["webinar-audience"],
+    customProperties: properties,
+  });
+}
+
+async function fireEvent(
+  apiKey: string,
+  eventName: string,
   email: string,
   properties: Record<string, unknown>
-) {
-  await omnisend("/events", {
-    email,
-    eventName: event,
+): Promise<boolean> {
+  return omnisend(apiKey, "/events", {
+    eventName,
+    origin: "api",
+    contact: { email },
     properties,
   });
 }
 
-/** Create/update a contact (used by the "not you?" form + register). */
-export async function upsertContact(input: {
-  email: string;
-  firstName?: string;
-  tags?: string[];
-}) {
-  await omnisend("/contacts", {
-    identifiers: [
-      { type: "email", id: input.email, channels: { email: { status: "subscribed" } } },
-    ],
-    firstName: input.firstName,
-    tags: input.tags,
+/** Registration: contact upsert + "webinar registered" event. */
+export async function pushRegistration(
+  w: WebinarEventInfo,
+  contact: { email: string; firstName?: string }
+): Promise<boolean> {
+  const apiKey = keyFor(w.brand);
+  if (!apiKey) return false; // brand without Omnisend (or key unset) — silent no-op
+  const day = (w.startTime ?? "").slice(0, 10);
+  const ok = await upsertContact(apiKey, contact.email, contact.firstName, {
+    lastWebinarRegistered: day,
+  });
+  const ev = await fireEvent(apiKey, "webinar registered", contact.email, {
+    webinarId: w.webinarId,
+    topic: w.topic,
+    webinarDate: day,
+    brand: w.brand,
+  });
+  return ok && ev;
+}
+
+/** Post-webinar: "webinar attended" event + rolling attended props. */
+export async function pushAttended(
+  w: WebinarEventInfo,
+  contact: { email: string; attendedCount: number }
+): Promise<boolean> {
+  const apiKey = keyFor(w.brand);
+  if (!apiKey) return false;
+  const day = (w.startTime ?? "").slice(0, 10);
+  const ok = await upsertContact(apiKey, contact.email, undefined, {
+    lastWebinarAttended: day,
+    webinarsAttendedCount: contact.attendedCount,
+  });
+  const ev = await fireEvent(apiKey, "webinar attended", contact.email, {
+    webinarId: w.webinarId,
+    topic: w.topic,
+    webinarDate: day,
+    brand: w.brand,
+  });
+  return ok && ev;
+}
+
+/** Opt-out: unsubscribe the email in every configured brand account. */
+export async function markOptedOut(email: string): Promise<void> {
+  for (const apiKey of Object.values(env.omnisend.keys)) {
+    if (!apiKey) continue;
+    await omnisend(apiKey, "/contacts", {
+      identifiers: [
+        { type: "email", id: email, channels: { email: { status: "unsubscribed", statusDate: new Date().toISOString() } } },
+      ],
+      tags: ["webinar-optout"],
+    });
+  }
+}
+
+/** T-15: "webinar starting" event with the personal join link (SMS flow trigger). */
+export async function pushStarting(
+  w: WebinarEventInfo,
+  contact: { email: string; joinUrl: string }
+): Promise<boolean> {
+  const apiKey = keyFor(w.brand);
+  if (!apiKey) return false;
+  return fireEvent(apiKey, "webinar starting", contact.email, {
+    webinarId: w.webinarId,
+    topic: w.topic,
+    startTime: w.startTime ?? "",
+    joinUrl: contact.joinUrl,
+    brand: w.brand,
   });
 }

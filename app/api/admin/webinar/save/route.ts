@@ -2,7 +2,6 @@ import { NextRequest, NextResponse } from "next/server";
 import { appSupabase } from "@/lib/supabase";
 import { getEmployee } from "@/lib/auth";
 import { getWebinar, getRegistrantQuestions } from "@/lib/zoom";
-import { fireEvent, upsertContact } from "@/lib/omnisend";
 import { nextStatusOnSave } from "@/lib/status";
 import { BRANDS, type Brand } from "@/lib/brands";
 import type { WebinarConfig, WebinarStatus } from "@/lib/types";
@@ -105,65 +104,5 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: upsertErr.message }, { status: 500 });
   }
 
-  let sends: { attended: number; noshow: number } | undefined;
-  if (replayNewlySet && endPassed) {
-    sends = await fireReplaySends(body.webinarId, merged.discount_code, merged.discount_expiry, merged.replay_url);
-  }
-
-  return NextResponse.json({ ok: true, status: nextStatus, replayNewlySet, sends });
-}
-
-/**
- * Replay-save trigger (README-build-v3.md §2). Fires attendee/no-show sends
- * once, idempotent via webinar_send_log's (webinar_id, send_type, email) unique key.
- */
-async function fireReplaySends(
-  webinarId: string,
-  code: string | null,
-  discountExpiry: string | null,
-  replayUrl: string | null
-): Promise<{ attended: number; noshow: number }> {
-  const sb = appSupabase();
-  const { data: attendance } = await sb
-    .from("webinar_attendance")
-    .select("email, attended")
-    .eq("webinar_id", webinarId);
-
-  const rows = attendance ?? [];
-  const attendees = rows.filter((r) => r.attended).map((r) => r.email);
-  const noShows = rows.filter((r) => !r.attended).map((r) => r.email);
-
-  // Skip anyone already logged for this send type (idempotency).
-  const { data: alreadyLogged } = await sb
-    .from("webinar_send_log")
-    .select("send_type, email")
-    .eq("webinar_id", webinarId);
-  const logged = new Set((alreadyLogged ?? []).map((l) => `${l.send_type}|${l.email}`));
-
-  let attendedCount = 0;
-  let noshowCount = 0;
-  const logRows: { webinar_id: string; send_type: string; email: string }[] = [];
-
-  for (const email of attendees) {
-    if (logged.has(`webinar_attended|${email}`)) continue;
-    await fireEvent("webinar_attended", email, { code, discount_expiry: discountExpiry, replay_url: replayUrl });
-    await upsertContact({ email, tags: ["webinar-attendee"] });
-    logRows.push({ webinar_id: webinarId, send_type: "webinar_attended", email });
-    attendedCount++;
-  }
-  for (const email of noShows) {
-    if (logged.has(`webinar_noshow|${email}`)) continue;
-    await fireEvent("webinar_noshow", email, { code, discount_expiry: discountExpiry, replay_url: replayUrl });
-    logRows.push({ webinar_id: webinarId, send_type: "webinar_noshow", email });
-    noshowCount++;
-  }
-
-  if (logRows.length > 0) {
-    await sb.from("webinar_send_log").upsert(logRows, {
-      onConflict: "webinar_id,send_type,email",
-      ignoreDuplicates: true,
-    });
-  }
-
-  return { attended: attendedCount, noshow: noshowCount };
+  return NextResponse.json({ ok: true, status: nextStatus, replayNewlySet });
 }
