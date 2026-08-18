@@ -94,7 +94,10 @@ export async function POST(req: NextRequest): Promise<NextResponse<RegisterResul
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
     // Already-registered is a success path in Zoom's model; surface as duplicate.
-    if (/already|3009|exist/i.test(msg)) {
+    // Same for Zoom's per-registrant daily cap (3 add-registrant calls per email
+    // per day): hitting it means this person already registered today — show
+    // them success, not an error (bit Blake while re-testing, 2026-08-18).
+    if (/already|3009|exist/i.test(msg) || /daily rate limit.*for the registrant/i.test(msg)) {
       status = "duplicate";
       joinUrl = "";
     } else {
