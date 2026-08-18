@@ -51,7 +51,9 @@ mirror. Zoom Server-to-Server OAuth. (Omnisend is referenced but NOT wired — m
 
 ### ⚠️ Zoom gotchas (each cost real time — read before touching Zoom)
 1. **Webinar scopes are filed under the "Meetings" product** in Add Scopes — there is **no "Webinar" category**. If a scope looks missing, click **Meetings**.
-2. **Custom question must be set to _not required_** in Zoom, or `POST registrants` returns **code 300**.
+2. **Custom question must be set to _not required_** in Zoom, or `POST registrants` returns **code 300**. Since 2026-08-18 the app **self-heals**: `addRegistrantWithRequiredQuestions` in `app/api/register/route.ts` parses the demanded title from the error and retries with the visitor's answer or `"-"` (this took down Claire's live campaign link before the fix). Still uncheck Required — placeholder answers pollute the export.
+2b. **Zoom also rejects blank/whitespace last names** (code 300, tested) — the `"-"` placeholder is mandatory when unknown. Yumer's links can pass `&ln=[[contact.lastName]]` for real names.
+2c. **Answers only reach Zoom if `zoom_question_title` (Zoom's exact question title) is stored** — custom_questions match by title. The save route auto-captures it from Zoom when missing.
 3. **Zoom's API misspells the field** — registration counts in `tracking_sources` come back as **`registrationr_count`** (extra "r"), not `registration_count`. See `lib/zoom.ts`.
 4. After adding scopes, **redeploy** — the S2S token is cached ~55 min.
 5. To add a scope: marketplace.zoom.us/user/build → Webinar Data Collector → Scopes → Add Scopes → **Meetings** → tick → Save → redeploy.
@@ -63,7 +65,11 @@ SUPABASE_URL / SUPABASE_SERVICE_KEY           (service_role key)
 SALES_SUPABASE_URL / SALES_SUPABASE_KEY        (same project + service_role)
 NEXT_PUBLIC_SUPABASE_URL / NEXT_PUBLIC_SUPABASE_ANON_KEY
 ADMIN_ALLOWED_DOMAINS = clownantics.com,facepaint.com,careerlearning.com
-# OMNISEND_API_KEY — not set (marketing handled outside the app)
+NEXT_PUBLIC_SITE_URL = https://webinar-onetap.vercel.app   (set 2026-08-18 — the
+#   Yumer copy-link + cron self-calls silently pointed at the unconfigured
+#   webinars.facepaint.com default before this)
+OMNISEND_API_KEY_FACEPAINT      (set, verified)
+OMNISEND_API_KEY_CLOWNANTICS    (EXISTS BUT VALUE IS EMPTY — parked)
 ```
 Convention: Claude sets public values via `vercel env add`; Blake sets the secrets himself.
 ⚠️ Secrets are marked **sensitive** in Vercel → `vercel env pull` writes them EMPTY.
@@ -137,7 +143,27 @@ masterclass webinars on 2026-08-12 — brands then tagged per Blake's mapping).
 
 **Removed (out of scope):** discount code/expiry, replay URL, post-webinar sends, Omnisend lifecycle.
 
+## In flight on `staging` (2026-08-18) — NOT yet in production
+See **SPEC-omnisend-sms.md** for the agreed spec, staging facts (URL, TEST webinar
+87555460720, CLI deploy flow), and division of work with Yumer. Built + verified on
+staging: per-brand Omnisend integration (`lib/omnisend.ts` v5: "webinar
+registered/attended/starting" events, rolling props, `webinar-audience` tag; all three
+event types seeded in FacePaint so flow-trigger dropdowns show them), cron jobs
+(registration sweep / T-15 join-link events / attended events, idempotent via
+`webinar_send_log`), visit tracking (migration `0005`, beacon → `webinar_visits`,
+conversion tiles), dashboard blend (⚡ one-tap chips + start times), last-name field
+in manual entry, `/api/omnisend-test` (seeds events; `probe:true` returns key lengths),
+`/api/zoom-history` (Dashboard-API scan — parked: needs the
+`dashboard:read:list_webinars:admin` scope Blake hasn't added).
+⚠️ `OMNISEND_API_KEY_CLOWNANTICS` still has an EMPTY value after three attempts
+(dashboard ×2 + CLI; probe shows length 0) — parked on Blake's word; FacePaint fully
+verified end-to-end. First real send (Kathy 2026-08-17): 173 one-tap registrations
+(108 SMS / 65 email) — best FacePaint registration week #3 of the last ten.
+
 **Remaining / follow-ups:**
+- Merge `staging` → `master` once Blake signs off on the Omnisend/visits build.
+- `OMNISEND_API_KEY_CLOWNANTICS` value (parked — see above).
+- Zoom dashboard scope for `/api/zoom-history` masterclass-history recovery (parked).
 - Answers panel only sees app-registered answers (fine going forward; could pull from Zoom registrants if ever needed).
 - Registration stats are fetched only for webinars within the last ~60 days (`RECENT_MS` in `app/admin/page.tsx`) to bound Zoom API calls.
 - Auto-filled registration question can read awkwardly (template stuffs the full title) — a per-webinar edit.
