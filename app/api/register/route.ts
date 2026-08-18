@@ -11,6 +11,34 @@ function isEmail(s: string): boolean {
   return /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(s);
 }
 
+/**
+ * Zoom rejects registrations that skip a REQUIRED custom question (code 300,
+ * e.g. Claire's webinar 2026-08-18). One-tap must never dead-end on that
+ * misconfiguration: parse the demanded question title out of the error and
+ * retry with the visitor's answer — or a "-" placeholder when they gave none.
+ */
+async function addRegistrantWithRequiredQuestions(
+  webinarId: string,
+  base: { email: string; first_name: string; last_name: string },
+  initialQuestions: { title: string; value: string }[] | undefined,
+  answer: string | undefined
+) {
+  let cq = initialQuestions;
+  const tried = new Set((cq ?? []).map((q) => q.title));
+  for (let attempt = 0; attempt < 3; attempt++) {
+    try {
+      return await addRegistrant(webinarId, { ...base, custom_questions: cq });
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      const m = msg.match(/required in custom_questions:\s*(.*?)\.?"\s*\}/);
+      if (!m || tried.has(m[1])) throw err;
+      tried.add(m[1]);
+      cq = [...(cq ?? []), { title: m[1], value: answer?.trim() || "-" }];
+    }
+  }
+  return addRegistrant(webinarId, { ...base, custom_questions: cq });
+}
+
 export async function POST(req: NextRequest): Promise<NextResponse<RegisterResult>> {
   let body: RegisterRequest;
   try {
@@ -54,15 +82,14 @@ export async function POST(req: NextRequest): Promise<NextResponse<RegisterResul
   let joinUrl: string;
   let status: RegisterResult["status"] = "success";
   try {
-    const result = await addRegistrant(webinarId, {
-      email,
-      first_name: firstName || "-",
-      // Zoom REJECTS blank last names (code 300, verified 2026-08-18 — empty
-      // and " " both fail), so the "-" placeholder is mandatory when unknown.
-      last_name: lastName?.trim() || "-",
-      custom_questions:
-        questionTitle && answer ? [{ title: questionTitle, value: answer }] : undefined,
-    });
+    // Zoom REJECTS blank last names (code 300, verified 2026-08-18 — empty
+    // and " " both fail), so the "-" placeholder is mandatory when unknown.
+    const result = await addRegistrantWithRequiredQuestions(
+      webinarId,
+      { email, first_name: firstName || "-", last_name: lastName?.trim() || "-" },
+      questionTitle && answer ? [{ title: questionTitle, value: answer }] : undefined,
+      answer
+    );
     joinUrl = result.join_url;
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
