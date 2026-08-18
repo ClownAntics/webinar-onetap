@@ -57,9 +57,9 @@ export async function POST(req: NextRequest): Promise<NextResponse<RegisterResul
     const result = await addRegistrant(webinarId, {
       email,
       first_name: firstName || "-",
-      // Last names are unused everywhere (Blake+Yumer 2026-08-17) — send
-      // empty rather than a "-" placeholder that clutters Zoom exports.
-      last_name: lastName ?? "",
+      // Zoom REJECTS blank last names (code 300, verified 2026-08-18 — empty
+      // and " " both fail), so the "-" placeholder is mandatory when unknown.
+      last_name: lastName?.trim() || "-",
       custom_questions:
         questionTitle && answer ? [{ title: questionTitle, value: answer }] : undefined,
     });
