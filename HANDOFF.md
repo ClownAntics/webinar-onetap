@@ -18,6 +18,14 @@ were removed.
 - **Prod:** https://webinar-onetap.vercel.app  (Vercel project `webinar-onetap`, org `bcabot202s-projects`)
 - **Deploy:** `vercel deploy --prod --yes` from the repo. `gh` + `vercel` CLIs are authed as `bcabot202`.
 - **Auth:** Supabase Google login, gated to `@clownantics.com` / `@facepaint.com` / `@careerlearning.com`.
+  ⚠️ **Login lands you in af-tag-review?** The Supabase project is SHARED and its Auth
+  *Site URL* points at that other app. Any login whose `redirectTo` is not an EXACT
+  match in Auth → URL Configuration → **Redirect URLs** silently falls back to that
+  Site URL. Bit us twice (setup, then Aubrey 2026-08-18). Must be listed:
+  `https://webinar-onetap.vercel.app/auth/callback`,
+  `https://webinar-onetap-staging.vercel.app/auth/callback`, and
+  `https://webinar-onetap-*-bcabot202s-projects.vercel.app/auth/callback` (previews).
+  Nothing in this repo can fix it — Supabase decides before the user reaches the app.
 
 ## Multi-org branding (Aug 2026)
 The app (named **"OneTap Webinars"**, tap-ripple `app/icon.svg` favicon) serves **three
