@@ -25,29 +25,24 @@ production unless it says so. Last updated 2026-08-18._
   (attendance + registrations) that predate the app. Older classes are likely
   past Zoom's retention regardless.
 
-## Link / registration issues (agreed, not built)
+## Link / registration issues
 
-- **"Copy link for Yumer" is missing `ln=`.** Generated in
-  `app/admin/[webinarId]/page.tsx` (`omnisendLink`). Should carry the last-name
-  merge tag so Zoom gets real last names instead of the `-` placeholder.
-- **⚠️ Likely merge-tag mismatch in that same link.** The button emits
+- **⚠️ OPEN — likely merge-tag mismatch in the Yumer link.** The button emits
   `fn=[[contact.firstName]]`, but the links Yumer actually sent used
   `fn=[[contact.first_name]]` — and his worked (173 registrations, zero literal
   `[[...]]` values in the data). Verify which token Omnisend expands before
   anyone copies the button's version verbatim; if `first_name` is correct, the
-  button has been emitting a broken tag.
-- **The copy link hardcodes `src=sms`.** Yumer edits it by hand for email sends
-  (confirmed in the 2026-08-17 meeting). Better: offer per-channel links
-  (email / SMS / website / social) so the source tag can't be forgotten —
-  source accuracy is what the whole conversion comparison rests on.
+  button has been emitting a broken tag. **Fix the `ln=` gap at the same time**
+  (the link still carries no last-name merge tag, so Zoom gets `-`).
+- ✅ DONE 2026-08-18 — hardcoded `src=sms` replaced by a channel picker on both
+  copy buttons; untagged links now record "direct" instead of "sms".
 
 ## Website use of the one-tap link (discussed 2026-08-18)
 
-- **`src` defaults to `"sms"` when the parameter is missing**, and `"website"`
-  isn't a valid source value in the code (`sms | email | social` only). A link
-  on facepaint.com would silently inflate SMS numbers. Fix before the link goes
-  on the site.
-- **Anonymous visitors can't be one-tapped.** Page already degrades to a short
+- ✅ DONE 2026-08-18 — `src` sanitized and free-form; missing tag records
+  "direct"; "Copy link for Aubrey" produces the plain website/social/blog link;
+  last-name field added to that form.
+- **OPEN — anonymous visitors can't be one-tapped.** Page already degrades to a short
   form. Options discussed, in recommended order: (1) remember past registrants
   in a first-party cookie so any prior email/SMS registrant gets one-tap on the
   website too; (2) have the Shopify template inject logged-in customers' email
@@ -71,7 +66,7 @@ Staging: https://webinar-onetap-staging.vercel.app · TEST webinar 87555460720
   today.**
 - Dashboard: ⚡ one-tap registrations by source blended into Zoom's tracking
   counts (Zoom's API cannot see API registrations), start times on cards.
-- **Last-name field on the no-name form** (the item Blake raised 2026-08-18).
+- ~~Last-name field on the no-name form~~ — shipped to production 2026-08-18.
 
 ## Smaller / lower confidence
 
