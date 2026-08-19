@@ -154,7 +154,10 @@ export default async function WebinarDetail({
 
   // Merge-tag link WITHOUT ?src= — the Setup panel appends the chosen channel
   // so it can't be left on a stale value.
-  const omnisendLink = `${env.siteUrl}/w/${webinarId}?e=[[contact.email]]&fn=[[contact.firstName]]`;
+  // NOTE: snake_case tags. README-build-v3 specified [[contact.firstName]], but
+  // the links Yumer actually sent used [[contact.first_name]] and expanded
+  // correctly across 173 registrations (2026-08-17) — camelCase is unproven.
+  const omnisendLink = `${env.siteUrl}/w/${webinarId}?e=[[contact.email]]&fn=[[contact.first_name]]&ln=[[contact.last_name]]`;
 
   return (
     <main style={{ minHeight: "100vh", background: "#f5f4f0", color: "#2f302f" }}>

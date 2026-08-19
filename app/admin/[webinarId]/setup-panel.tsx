@@ -41,8 +41,6 @@ const MERGE_SOURCES: { value: string; label: string }[] = [
 const PLAIN_SOURCES: { value: string; label: string }[] = [
   { value: "website", label: "Website" },
   { value: "social", label: "Social media" },
-  { value: "blog", label: "Blog" },
-  { value: "popup", label: "Site pop-up" },
 ];
 
 export interface SetupInitial {
