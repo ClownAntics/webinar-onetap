@@ -27,13 +27,12 @@ production unless it says so. Last updated 2026-08-18._
 
 ## Link / registration issues
 
-- **⚠️ OPEN — likely merge-tag mismatch in the Yumer link.** The button emits
-  `fn=[[contact.firstName]]`, but the links Yumer actually sent used
-  `fn=[[contact.first_name]]` — and his worked (173 registrations, zero literal
-  `[[...]]` values in the data). Verify which token Omnisend expands before
-  anyone copies the button's version verbatim; if `first_name` is correct, the
-  button has been emitting a broken tag. **Fix the `ln=` gap at the same time**
-  (the link still carries no last-name merge tag, so Zoom gets `-`).
+- ✅ DONE 2026-08-18 — Yumer link now carries `ln=[[contact.last_name]]` and
+  uses **snake_case** tags throughout (`contact.first_name`), matching the
+  format proven across his 173 real registrations. The camelCase form from
+  `README-build-v3.md` was never verified to expand.
+  **⚠️ Worth one confirmation from Yumer:** have him paste the copied link into
+  a test send and check the name resolves — the evidence is strong but indirect.
 - ✅ DONE 2026-08-18 — hardcoded `src=sms` replaced by a channel picker on both
   copy buttons; untagged links now record "direct" instead of "sms".
 
