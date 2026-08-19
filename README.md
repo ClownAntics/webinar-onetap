@@ -98,7 +98,7 @@ Header bar: dark `#2F302F`, logo 44px + "Webinar Admin". Body max-width 880px on
 4. **Save — mark Ready** (green, press-down shadow) → writes `webinar_config`, badge flips to READY. Cancel link closes.
 
 ### Copy link output
-`https://webinars.facepaint.com/w/{webinarId}?e=[[contact.email]]&fn=[[contact.firstName]]&src=sms` — Omnisend merge tags baked in; Yumer swaps `src` per channel. Shown in monospace teal under the row after copying.
+`https://webinars.facepaint.com/w/{webinarId}?e=[[contact.email]]&fn=[[contact.first_name]]&ln=[[contact.last_name]]&src=sms` — Omnisend merge tags baked in; Yumer swaps `src` per channel. Shown in monospace teal under the row after copying.
 
 Footer note on the page: a webinar must be Ready before its landing page goes live; Zoom-side, add the custom question and set it **not required**.
 
