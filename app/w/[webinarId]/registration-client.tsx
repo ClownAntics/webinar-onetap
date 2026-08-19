@@ -67,7 +67,7 @@ export default function RegistrationClient(props: {
   email: string;
   firstName: string;
   lastName: string;
-  source: "sms" | "email" | "social";
+  source: string;
   config: WebinarConfig | null;
   registrationUrl?: string;
   preview?: boolean;

@@ -34,6 +34,16 @@ async function loadRegistrationUrl(webinarId: string): Promise<string | undefine
   }
 }
 
+/**
+ * Sanitize ?src= into a stats channel. Free-form (Yumer/Aubrey pick their own
+ * labels) but bounded. Missing src is "direct" — NOT "sms", which used to
+ * silently inflate the SMS numbers for any link posted without a tag.
+ */
+function normalizeSource(raw?: string): string {
+  const s = (raw ?? "").toLowerCase().replace(/[^a-z0-9_-]/g, "").slice(0, 20);
+  return s || "direct";
+}
+
 export default async function WebinarLanding({
   params,
   searchParams,
@@ -57,7 +67,7 @@ export default async function WebinarLanding({
       email={get("e") ?? ""}
       firstName={get("fn") ?? ""}
       lastName={get("ln") ?? ""}
-      source={(get("src") as "sms" | "email" | "social") ?? "sms"}
+      source={normalizeSource(get("src"))}
       config={config}
       registrationUrl={registrationUrl}
       preview={get("preview") === "1"}
