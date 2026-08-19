@@ -30,9 +30,26 @@ const TEMPLATES: Record<string, (t: string) => string> = {
   Custom: () => "",
 };
 
+// Where a plain (no-merge-tag) link gets posted. The value becomes ?src= and
+// shows up as its own channel in the stats, so keep these short and stable.
+const MERGE_SOURCES: { value: string; label: string }[] = [
+  { value: "email", label: "Email" },
+  { value: "sms", label: "SMS" },
+  { value: "social", label: "Social media" },
+];
+
+const PLAIN_SOURCES: { value: string; label: string }[] = [
+  { value: "website", label: "Website" },
+  { value: "social", label: "Social media" },
+  { value: "blog", label: "Blog" },
+  { value: "popup", label: "Site pop-up" },
+];
+
 export interface SetupInitial {
   webinarId: string;
   brand: Brand;
+  /** `${siteUrl}/w/${webinarId}` — base for the plain link. */
+  baseLink: string;
   display_title: string;
   question_text: string;
   agenda: string;
@@ -43,6 +60,8 @@ export interface SetupInitial {
 
 export default function SetupPanel(props: SetupInitial) {
   const [brand, setBrand] = useState<Brand>(props.brand);
+  const [plainSource, setPlainSource] = useState("website");
+  const [mergeSource, setMergeSource] = useState("email");
   const [displayTitle, setDisplayTitle] = useState(props.display_title);
   const [template, setTemplate] = useState("Custom");
   const [questionText, setQuestionText] = useState(props.question_text);
@@ -234,7 +253,57 @@ export default function SetupPanel(props: SetupInitial) {
       <div style={helpStyle}>Opens the one-tap page as customers will see it. Save first to preview your latest changes.</div>
 
       {!firstTime && (
-        <CopyButton text={props.omnisendLink} label="Copy link for Yumer" reveal bg="#0C84A4" />
+        <>
+          <div style={{ borderTop: "1px solid #eee", paddingTop: 14 }}>
+            <div style={labelStyle}>Link for Yumer — email / SMS (fills in name + email)</div>
+            <select
+              style={{ ...inputStyle, marginTop: 4, marginBottom: 8 }}
+              value={mergeSource}
+              onChange={(e) => setMergeSource(e.target.value)}
+            >
+              {MERGE_SOURCES.map((s) => (
+                <option key={s.value} value={s.value}>
+                  {s.label}
+                </option>
+              ))}
+            </select>
+            <CopyButton
+              text={`${props.omnisendLink}&src=${mergeSource}`}
+              label="Copy link for Yumer"
+              reveal
+              bg="#0C84A4"
+            />
+            <div style={helpStyle}>
+              Pick the channel before copying — it tags the registrations so email and SMS
+              can be compared.
+            </div>
+          </div>
+
+          <div style={{ borderTop: "1px solid #eee", paddingTop: 14 }}>
+            <div style={labelStyle}>Link for the website / social (no name or email)</div>
+            <select
+              style={{ ...inputStyle, marginTop: 4, marginBottom: 8 }}
+              value={plainSource}
+              onChange={(e) => setPlainSource(e.target.value)}
+            >
+              {PLAIN_SOURCES.map((s) => (
+                <option key={s.value} value={s.value}>
+                  {s.label}
+                </option>
+              ))}
+            </select>
+            <CopyButton
+              text={`${props.baseLink}?src=${plainSource}`}
+              label="Copy link for Aubrey"
+              reveal
+              bg="#54AF3E"
+            />
+            <div style={helpStyle}>
+              Anyone can use this — visitors type their name and email on the page. Pick where
+              you&apos;re posting it so registrations show up under that channel in the stats.
+            </div>
+          </div>
+        </>
       )}
     </div>
   );

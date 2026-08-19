@@ -22,13 +22,31 @@ export default function CopyButton({
   fg?: string;
 }) {
   const [copied, setCopied] = useState(false);
+  const [failed, setFailed] = useState(false);
 
   async function copy() {
+    // navigator.clipboard is undefined on insecure origins and blocked by some
+    // browser/permission setups (Yumer hit this). Fall back to the legacy
+    // execCommand path, then to showing the text for manual selection.
+    let ok = false;
     try {
       await navigator.clipboard.writeText(text);
+      ok = true;
     } catch {
-      /* clipboard blocked — ignore */
+      try {
+        const ta = document.createElement("textarea");
+        ta.value = text;
+        ta.style.position = "fixed";
+        ta.style.opacity = "0";
+        document.body.appendChild(ta);
+        ta.select();
+        ok = document.execCommand("copy");
+        document.body.removeChild(ta);
+      } catch {
+        ok = false;
+      }
     }
+    setFailed(!ok);
     setCopied(true);
     setTimeout(() => setCopied(false), 2500);
   }
@@ -48,9 +66,9 @@ export default function CopyButton({
           cursor: "pointer",
         }}
       >
-        {copied ? copiedLabel : label}
+        {copied ? (failed ? "Select and copy ↓" : copiedLabel) : label}
       </button>
-      {reveal && copied && (
+      {(reveal || failed) && copied && (
         <div
           style={{
             marginTop: 8,

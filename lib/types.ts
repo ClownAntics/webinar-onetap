@@ -2,7 +2,12 @@
 
 import type { Brand } from "./brands";
 
-export type RegistrationSource = "sms" | "email" | "social" | "backfill";
+/**
+ * Channel tag from the link's ?src=. Free-form because marketing picks the
+ * labels (sms, email, social, website, blog, popup, …); "direct" when a link
+ * carries no tag, "backfill" for imported history.
+ */
+export type RegistrationSource = string;
 
 export type WebinarStatus =
   | "NEEDS_SETUP"

@@ -132,7 +132,9 @@ export default async function WebinarDetail({
     }
   }
 
-  const omnisendLink = `${env.siteUrl}/w/${webinarId}?e=[[contact.email]]&fn=[[contact.firstName]]&src=sms`;
+  // Merge-tag link WITHOUT ?src= — the Setup panel appends the chosen channel
+  // so it can't be left on a stale value.
+  const omnisendLink = `${env.siteUrl}/w/${webinarId}?e=[[contact.email]]&fn=[[contact.firstName]]`;
 
   return (
     <main style={{ minHeight: "100vh", background: "#f5f4f0", color: "#2f302f" }}>
@@ -167,6 +169,7 @@ export default async function WebinarDetail({
             <SetupPanel
               webinarId={webinarId}
               brand={d.config?.brand ?? "facepaint"}
+              baseLink={`${env.siteUrl}/w/${webinarId}`}
               display_title={d.config?.display_title ?? (cleanWebinarTitle(d.rawTopic) || d.topic)}
               question_text={d.config?.question_text ?? d.zoomQuestion ?? ""}
               agenda={d.config?.agenda ?? d.zoomAgenda ?? ""}
