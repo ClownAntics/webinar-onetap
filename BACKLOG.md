@@ -24,9 +24,10 @@ production unless it says so. Last updated 2026-08-20._
 - ✅ FIXED 2026-08-20 — **`OMNISEND_API_KEY_CLOWNANTICS` now set and verified.**
   Blake re-saved it; probe shows 75 chars and a live contact-create against the
   Clownantics Omnisend API returned 200. (Was: three save attempts stored 0
-  characters.) Event types not yet seeded in the Clownantics account — run
-  `/api/omnisend-test` (non-probe) with brand `clownantics` before anyone
-  builds flows there, so the triggers appear in the dropdown.
+  characters.) All three event types
+  seeded 2026-08-20, so the triggers show in the Clownantics flow-builder
+  dropdown. ⚠️ Only build flows on `registered` / `attended` — `starting` is in
+  the dropdown but will not fire (T-15 gated off on the free plan).
 - **Zoom dashboard scope** (`dashboard:read:list_webinars:admin`) for
   `/api/zoom-history` — would recover the Feb–May 2026 masterclass sessions
   (attendance + registrations) that predate the app. Older classes are likely
