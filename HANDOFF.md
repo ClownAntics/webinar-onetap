@@ -1,6 +1,6 @@
 # Handoff — OneTap Webinars (multi-org one-tap webinar app)
 
-_Last updated: 2026-08-12_
+_Last updated: 2026-08-20_
 
 ## What it is
 Turns a Zoom webinar into a **one-tap registration link**. A personalized link
@@ -43,7 +43,19 @@ is not loaded — the app uses Montserrat everywhere (close cousin; upgrade if a
 
 ## Stack
 Next.js 16 (App Router) + TypeScript on Vercel. Supabase for auth + data + the sales
-mirror. Zoom Server-to-Server OAuth. (Omnisend is referenced but NOT wired — marketing is out of scope.)
+mirror. Zoom Server-to-Server OAuth. Omnisend wired per-brand (FacePaint + Clownantics,
+live since 2026-08-20; CareerLearning excluded — their email is on Fresh).
+
+## ⚠️ Vercel FREE plan constraints (2026-08-20, Blake's decision)
+- Cron runs **once daily** (`0 5 * * *` UTC ≈ 1am ET; Hobby fails deployment on
+  anything more frequent). Attendance sync, sweeps, attended events and the
+  summary cache lag up to ~24h. Registration → Omnisend is inline, unaffected.
+- The T-15 "webinar starting" SMS is **gated off** (`STARTING_ENABLED = false`
+  in `app/api/cron/route.ts`). Yumer must NOT build a flow on that trigger.
+  Restore = Pro upgrade (or external scheduler) + 15-min schedule + the flag.
+- `/api/cron` and `/api/zoom-history` require `Authorization: Bearer <CRON_SECRET>`
+  (env var set in prod; Vercel's scheduler sends the header automatically).
+- Zoom Dashboard API (`/api/zoom-history`) is dead: needs Business+ Zoom plan.
 
 ## Supabase (one shared project)
 - **Project:** `rilhgeshkypbcckedaoh` (name `af-sales-research`) — also used by af-tag-review + the TeamDesk sales mirror.
@@ -77,7 +89,8 @@ NEXT_PUBLIC_SITE_URL = https://webinar-onetap.vercel.app   (set 2026-08-18 — t
 #   Yumer copy-link + cron self-calls silently pointed at the unconfigured
 #   webinars.facepaint.com default before this)
 OMNISEND_API_KEY_FACEPAINT      (set, verified)
-OMNISEND_API_KEY_CLOWNANTICS    (EXISTS BUT VALUE IS EMPTY — parked)
+OMNISEND_API_KEY_CLOWNANTICS    (set + verified 2026-08-20; events seeded)
+CRON_SECRET                     (set 2026-08-20; machine-generated, recorded nowhere)
 ```
 Convention: Claude sets public values via `vercel env add`; Blake sets the secrets himself.
 ⚠️ Secrets are marked **sensitive** in Vercel → `vercel env pull` writes them EMPTY.
