@@ -16,6 +16,8 @@ export interface CardData {
   isMasterclass: boolean;
   registered: number | null;
   sources: { name: string; count: number }[];
+  /** One-tap (app) registrations by source — Zoom's tracking can't see these. */
+  appSources: { name: string; count: number }[];
   attended: number;
   isPast: boolean;
   /** 7-day attributed revenue from the webinar_summary cache (null = not computed). */
@@ -152,12 +154,19 @@ function Card({ c }: { c: CardData }) {
           <StatusPill status={c.status} />
         </div>
         <div style={{ color: "#888", fontSize: 12.5, marginTop: 2 }}>
-          {c.startTime ? new Date(c.startTime).toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric", timeZone: "America/New_York" }) : "date TBD"}
+          {c.startTime
+            ? `${new Date(c.startTime).toLocaleString("en-US", { weekday: "short", month: "short", day: "numeric", hour: "numeric", minute: "2-digit", timeZone: "America/New_York" })} ET`
+            : "date TBD"}
         </div>
         <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginTop: 8, fontSize: 11.5 }}>
           {c.registered != null && <span style={chip}>👥 <b>{c.registered}</b> registered</span>}
           {c.sources.map((s) => (
             <span key={s.name} style={chip}>{s.name} {s.count}</span>
+          ))}
+          {c.appSources.map((s) => (
+            <span key={`app-${s.name}`} style={{ ...chip, background: "#E3F1FA", color: "#0C84A4", fontWeight: 700 }}>
+              ⚡ {s.name} {s.count}
+            </span>
           ))}
           {c.isPast && c.attended > 0 && (
             <span style={{ ...chip, background: "#E8F5E1", color: "#3c7d2b" }}>✅ {c.attended}{showRate ? ` (${showRate}%)` : ""}</span>

@@ -45,8 +45,19 @@ export default function DeveloperPage() {
           <ul>
             <li style={li}><span style={code}>/w/[webinarId]</span> — public one-tap page. <span style={code}>POST /api/register</span> registers via Zoom, returns the personal join_url; on failure it redirects to Zoom&apos;s native registration.</li>
             <li style={li}><span style={code}>/admin</span> — dashboard, detail (setup + status lifecycle + stats + answers), <span style={code}>/admin/trends</span> (revenue charts + CSV).</li>
-            <li style={li}><span style={code}>/api/attendance-sync</span>, <span style={code}>/api/cron</span> — attendance + scheduled sends. <span style={code}>/api/admin/webinar/*</span> — save, status, banner upload.</li>
+            <li style={li}><span style={code}>/api/attendance-sync</span> (<span style={code}>{"{webinarId}"}</span> or <span style={code}>{"{all:true}"}</span>), <span style={code}>/api/cron</span> — attendance, Omnisend sweep/events, summary cache. <span style={code}>/api/admin/webinar/*</span> — save, status, banner upload.</li>
+            <li style={li}><span style={code}>/api/visit</span> — landing-page visit beacon (conversion denominator). <span style={code}>/api/omnisend-test</span> — seed event types / probe keys. <span style={code}>/api/zoom-history</span> — Dashboard-API history scan (needs dashboard scope).</li>
           </ul>
+        </section>
+
+        <section style={card}>
+          <h2 style={h2}>Omnisend (SPEC-omnisend-sms.md)</h2>
+          <p style={{ margin: 0 }}>
+            Per-brand keys (<span style={code}>OMNISEND_API_KEY_FACEPAINT</span> / <span style={code}>_CLOWNANTICS</span>; CareerLearning none — no-ops).
+            Events <span style={code}>webinar registered / attended / starting</span> (the T-15 one carries the personal <span style={code}>joinUrl</span> for Yumer&apos;s SMS flow),
+            rolling contact properties (<span style={code}>lastWebinarRegistered/Attended</span>, <span style={code}>webinarsAttendedCount</span>), single tag <span style={code}>webinar-audience</span>.
+            Idempotency via <span style={code}>webinar_send_log</span>; registration never blocks on Omnisend — the cron sweep is the retry.
+          </p>
         </section>
 
         <section style={card}>

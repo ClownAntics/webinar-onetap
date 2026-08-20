@@ -21,6 +21,7 @@ interface RegEvent {
   email: string;
   source: string | null;
   question_answer: string | null;
+  status: string | null;
   ts: string;
 }
 interface AttRow {
@@ -30,6 +31,7 @@ interface AttRow {
 
 interface Detail {
   config: WebinarConfig | null;
+  visits: number;
   topic: string;
   rawTopic: string | null;
   startTime: string | null;
@@ -46,6 +48,7 @@ async function loadDetail(webinarId: string): Promise<Detail> {
   let config: WebinarConfig | null = null;
   let regEvents: RegEvent[] = [];
   let attendance: AttRow[] = [];
+  let visits = 0;
   let dbError: string | undefined;
 
   try {
@@ -53,7 +56,7 @@ async function loadDetail(webinarId: string): Promise<Detail> {
     const [cfg, re, att] = await Promise.all([
       sb.from("webinar_config").select("*").eq("webinar_id", webinarId).maybeSingle<WebinarConfig>(),
       fetchAllRows<RegEvent>((from, to) =>
-        sb.from("webinar_reg_events").select("email, source, question_answer, ts").eq("webinar_id", webinarId).order("id").range(from, to)
+        sb.from("webinar_reg_events").select("email, source, question_answer, status, ts").eq("webinar_id", webinarId).order("id").range(from, to)
       ),
       fetchAllRows<AttRow>((from, to) =>
         sb.from("webinar_attendance").select("email, attended").eq("webinar_id", webinarId).order("id").range(from, to)
@@ -62,6 +65,17 @@ async function loadDetail(webinarId: string): Promise<Detail> {
     config = cfg.data ?? null;
     regEvents = re;
     attendance = att;
+    // Landing-page visits (denominator for conversion). Table arrives with
+    // migration 0005 — degrade to 0 until then.
+    try {
+      const { count } = await sb
+        .from("webinar_visits")
+        .select("id", { count: "exact", head: true })
+        .eq("webinar_id", webinarId);
+      visits = count ?? 0;
+    } catch {
+      visits = 0;
+    }
   } catch (err) {
     dbError = err instanceof Error ? err.message : String(err);
   }
@@ -78,6 +92,7 @@ async function loadDetail(webinarId: string): Promise<Detail> {
 
   return {
     config,
+    visits,
     topic: config?.display_title ?? config?.zoom_topic ?? zw?.topic ?? webinarId,
     rawTopic: zw?.topic ?? config?.zoom_topic ?? null,
     startTime: config?.start_time ?? zw?.start_time ?? null,
@@ -112,6 +127,11 @@ export default async function WebinarDetail({
   const answers = d.regEvents
     .filter((r) => r.question_answer && r.question_answer.trim())
     .map((r) => ({ email: r.email, answer: r.question_answer!.trim() }));
+
+  // One-tap (app) registrations — Zoom's tracking counts can't see these.
+  const oneTapUnique = new Set(
+    d.regEvents.filter((r) => r.status === "success" && r.source !== "backfill").map((r) => r.email.toLowerCase())
+  ).size;
 
   const attended = d.attendance.filter((a) => a.attended).length;
   const hasAttendance = d.attendance.length > 0;
@@ -187,8 +207,13 @@ export default async function WebinarDetail({
             <section style={card}>
               <div style={cardTitle}>Stats</div>
               <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
-                <StatTile label="Registered" value={registered} />
-                {zoomVisitors > 0 && <StatTile label="Visitors" value={zoomVisitors} />}
+                <StatTile label="Registered" value={registered + oneTapUnique} />
+                {oneTapUnique > 0 && <StatTile label="⚡ One-tap" value={oneTapUnique} />}
+                {d.visits > 0 && <StatTile label="Page visits" value={d.visits} />}
+                {d.visits > 0 && oneTapUnique > 0 && (
+                  <StatTile label="Conversion" value={`${Math.round((oneTapUnique / d.visits) * 100)}%`} tone="green" />
+                )}
+                {zoomVisitors > 0 && <StatTile label="Zoom visitors" value={zoomVisitors} />}
                 {hasAttendance && <StatTile label="Attended" value={attended} tone="green" />}
                 {hasAttendance && <StatTile label="Show rate" value={`${showRate}%`} tone="green" />}
               </div>
