@@ -1,4 +1,5 @@
 import RegistrationClient from "./registration-client";
+import { cookies } from "next/headers";
 import { appSupabase } from "@/lib/supabase";
 import { getWebinar } from "@/lib/zoom";
 import type { WebinarConfig } from "@/lib/types";
@@ -44,6 +45,24 @@ function normalizeSource(raw?: string): string {
   return s || "direct";
 }
 
+/**
+ * Returning-registrant cookie (set client-side after a successful
+ * registration). Lets a past registrant get the one-tap experience from the
+ * plain website/social link, where the URL carries no identity. URL params
+ * always win — a personalized email/SMS link behaves exactly as before.
+ */
+async function readIdentityCookie(): Promise<{ e: string; fn: string; ln: string } | null> {
+  try {
+    const raw = (await cookies()).get("onetap_identity")?.value;
+    if (!raw) return null;
+    const v = JSON.parse(decodeURIComponent(raw)) as { e?: string; fn?: string; ln?: string };
+    if (typeof v.e !== "string" || !v.e.includes("@")) return null;
+    return { e: v.e, fn: typeof v.fn === "string" ? v.fn : "", ln: typeof v.ln === "string" ? v.ln : "" };
+  } catch {
+    return null; // malformed cookie — fall back to the form
+  }
+}
+
 export default async function WebinarLanding({
   params,
   searchParams,
@@ -61,12 +80,14 @@ export default async function WebinarLanding({
     loadRegistrationUrl(webinarId),
   ]);
 
+  const cookieId = get("e") ? null : await readIdentityCookie();
+
   return (
     <RegistrationClient
       webinarId={webinarId}
-      email={get("e") ?? ""}
-      firstName={get("fn") ?? ""}
-      lastName={get("ln") ?? ""}
+      email={get("e") ?? cookieId?.e ?? ""}
+      firstName={get("fn") ?? cookieId?.fn ?? ""}
+      lastName={get("ln") ?? cookieId?.ln ?? ""}
       source={normalizeSource(get("src"))}
       config={config}
       registrationUrl={registrationUrl}

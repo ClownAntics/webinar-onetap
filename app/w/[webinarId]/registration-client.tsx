@@ -46,6 +46,28 @@ function properCase(name: string): string {
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
 
+/**
+ * Returning-registrant cookie: set after every successful registration so the
+ * plain website/social link can one-tap this browser next time (read
+ * server-side in page.tsx). First-party, 1 year, this app only.
+ */
+function rememberRegistrant(e: string, fn: string, ln: string) {
+  try {
+    const v = encodeURIComponent(JSON.stringify({ e, fn, ln }));
+    document.cookie = `onetap_identity=${v}; Max-Age=31536000; Path=/; SameSite=Lax; Secure`;
+  } catch {
+    /* never break the success screen over a cookie */
+  }
+}
+
+function forgetRegistrant() {
+  try {
+    document.cookie = "onetap_identity=; Max-Age=0; Path=/; SameSite=Lax; Secure";
+  } catch {
+    /* ignore */
+  }
+}
+
 function formatDate(iso?: string | null): string {
   if (!iso) return "";
   const d = new Date(iso);
@@ -142,6 +164,7 @@ export default function RegistrationClient(props: {
       }
       setResult(data);
       setPhase("success");
+      rememberRegistrant(email.trim(), properCase(firstName), properCase(lastName));
     } catch {
       setResult({ status: "error", message: "network" });
       setPhase("error");
@@ -249,6 +272,7 @@ export default function RegistrationClient(props: {
                   setFirstName("");
                   setLastName("");
                   setManualEntry(true);
+                  forgetRegistrant(); // shared computer — drop the remembered identity
                 }}
               >
                 Not {properCase(firstName) || "you"}? Use a different email
