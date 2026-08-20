@@ -56,13 +56,18 @@ production unless it says so. Last updated 2026-08-20._
 - ✅ DONE 2026-08-18 — `src` sanitized and free-form; missing tag records
   "direct"; "Copy link for Aubrey" produces the plain website/social/blog link;
   last-name field added to that form.
-- **OPEN — anonymous visitors can't be one-tapped.** Page already degrades to a short
-  form. Options discussed, in recommended order: (1) remember past registrants
-  in a first-party cookie so any prior email/SMS registrant gets one-tap on the
-  website too; (2) have the Shopify template inject logged-in customers' email
-  + name into the link; (3) keep the form for genuine strangers. Do NOT drop
-  the name fields — Zoom requires a name, and `-` breaks Yumer's
-  personalization.
+- ✅ DONE 2026-08-20 — **returning-registrant cookie shipped (option 1).**
+  Successful registrations set a first-party `onetap_identity` cookie (1 year);
+  the landing page reads it server-side when the URL has no `?e=`, so past
+  registrants get one-tap from the plain website/social link. URL params always
+  win (email/SMS links unchanged); "Not you?" clears the cookie; malformed
+  cookies fall back to the form. Verified on prod: anonymous → form, cookie →
+  one-tap, Not-you → cleared, URL-param link → unaffected. The visit-tracking
+  tiles will show whether website conversion moves.
+  Parked: (2) Shopify template injecting logged-in customers' identity —
+  revisit only if form-fallback stays high on website traffic. (3) the form
+  stays as the floor for true strangers. Do NOT drop the name fields — Zoom
+  requires a name, and `-` breaks Yumer's personalization.
 
 ## Vercel Hobby cron limit (2026-08-20)
 
