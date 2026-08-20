@@ -339,10 +339,10 @@ function CalendarButtons(props: { title: string; startTime?: string | null; join
           details: `Join link: ${props.joinUrl ?? ""}`,
         }).toString()
       : "";
-  const icsHref =
-    start && end
-      ? `/api/ics/reg?title=${encodeURIComponent(props.title)}&start=${start.toISOString()}&end=${end.toISOString()}&join=${encodeURIComponent(props.joinUrl ?? "")}`
-      : "#";
+  // No start time (unconfigured webinar) — a calendar event can't be built,
+  // so show no buttons rather than a dead "#" link.
+  if (!start || !end) return null;
+  const icsHref = `/api/ics/reg?title=${encodeURIComponent(props.title)}&start=${start.toISOString()}&end=${end.toISOString()}&join=${encodeURIComponent(props.joinUrl ?? "")}`;
 
   return (
     <>
