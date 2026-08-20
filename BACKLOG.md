@@ -135,6 +135,9 @@ Staging: https://webinar-onetap-staging.vercel.app · TEST webinar 87555460720
   Older cards keep title/attendance/revenue from the DB; only the live
   registration-by-source call is skipped, and those numbers no longer change.
   The cron summary cache persists finals before the window closes.
-- CareerLearning revenue: their sales aren't in TeamDesk — future integration.
+- ✅ RESOLVED 2026-08-20 — Blake: CareerLearning has **no attributable-revenue
+  model** (not applicable, not "missing data"). Revenue block on the detail
+  page and the 7-day chip on dashboard cards are now hidden for that brand
+  instead of showing a misleading $0. No future integration planned.
 - Poppins font for CareerLearning-branded pages (brand guide specifies it;
   app uses Montserrat everywhere).

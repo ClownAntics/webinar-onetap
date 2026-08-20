@@ -163,9 +163,12 @@ export default async function WebinarDetail({
   const status = autoAdjust(storedStatus, { answersCount: answers.length, endPassed });
 
   // Revenue block (§4a) — past webinars with attendance + sales configured.
+  // CareerLearning has no attributable-revenue model (their sales are not in
+  // TeamDesk and never will be) — hide the block instead of showing $0.
+  const revenueApplies = (d.config?.brand ?? "facepaint") !== "careerlearning";
   let metrics: WebinarMetrics | null = null;
   let metricsError: string | undefined;
-  if (hasAttendance) {
+  if (hasAttendance && revenueApplies) {
     try {
       metrics = await computeOneWebinarMetrics(webinarId);
     } catch (err) {
@@ -249,7 +252,9 @@ export default async function WebinarDetail({
               )}
               {!hasAttendance && (
                 <div style={{ fontSize: 12.5, color: "#999" }}>
-                  Attendance + revenue appear after the webinar (via attendance-sync).
+                  {revenueApplies
+                    ? "Attendance + revenue appear after the webinar (via attendance-sync)."
+                    : "Attendance appears after the webinar (via attendance-sync)."}
                 </div>
               )}
             </section>

@@ -135,7 +135,8 @@ async function loadDashboard(): Promise<{ cards: CardData[]; zoomError?: string;
       appSources,
       attended: attended.get(id) ?? 0,
       isPast: endPassed,
-      revenue7d: revenue.get(id) ?? null,
+      // CareerLearning: no attributable revenue (sales not in TeamDesk) — no chip.
+      revenue7d: (c?.brand ?? "facepaint") === "careerlearning" ? null : revenue.get(id) ?? null,
     };
   });
   return { cards, zoomError, dbError };
