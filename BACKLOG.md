@@ -5,7 +5,12 @@ production unless it says so. Last updated 2026-08-20._
 
 ## Blocked on Blake / external
 
-- **Login dumps users into af-tag-review.** Hit Aubrey 2026-08-18; **resolved
+- **Login dumps users into af-tag-review.** ➡️ ACCEPTED AS-IS 2026-08-20:
+  Blake's call — the team just uses the canonical
+  `https://webinar-onetap.vercel.app/admin` link, which is allow-listed and
+  works. No Supabase change. Staging and preview-URL logins will still land in
+  af-tag-review; if that ever starts biting, the fix is the two Redirect URLs
+  below. (Original notes kept for that eventuality.) Hit Aubrey 2026-08-18; **resolved
   for her** by using the canonical `https://webinar-onetap.vercel.app/admin`,
   which confirms production IS allow-listed and her original link was some
   other URL (stale bookmark or a per-deploy preview URL). Root cause: the
