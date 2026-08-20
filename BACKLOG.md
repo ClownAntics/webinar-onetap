@@ -86,10 +86,14 @@ production unless it says so. Last updated 2026-08-20._
   registration sweep, "webinar attended" events, and the summary cache now lag
   by up to ~24h (Hobby timing is also ±59 min). Registration → Omnisend is
   unaffected — the register route pushes inline, not via cron.
-- **`/api/cron` is an unauthenticated GET** — anyone with the URL can trigger
-  it. Idempotent via `webinar_send_log`, so it cannot double-send, but it burns
-  Zoom API calls against the rate limit. Add a `CRON_SECRET` bearer check.
-  Required anyway if an external scheduler ends up calling it.
+- ✅ DONE 2026-08-20 — **`/api/cron` and `/api/zoom-history` now require
+  `Authorization: Bearer <CRON_SECRET>`** (`lib/cron-auth.ts`). The secret is
+  set in Vercel prod env (64 hex chars, machine-generated, recorded nowhere
+  else); Vercel's scheduler sends that exact header automatically for the
+  `CRON_SECRET` env var. Verified: no-auth and bad-token → 401; real token →
+  200, and that first authorized run swept **224 registrations into Omnisend**
+  (the designed launch backfill, logged in `webinar_send_log`, no re-sends).
+  Unset secret (local dev) skips the check.
 
 ## Merged to `master` 2026-08-20 (built on `staging`, not yet deployed)
 
