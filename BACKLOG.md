@@ -1,7 +1,7 @@
 # Backlog — parked items
 
 _Running list of known issues and agreed-but-unbuilt work. Nothing here is in
-production unless it says so. Last updated 2026-08-18._
+production unless it says so. Last updated 2026-08-20._
 
 ## Blocked on Blake / external
 
@@ -49,8 +49,30 @@ production unless it says so. Last updated 2026-08-18._
   the name fields — Zoom requires a name, and `-` breaks Yumer's
   personalization.
 
-## Built on `staging`, awaiting Blake's sign-off to merge
+## Deploy blocker — Vercel Hobby cron limit (2026-08-20)
 
+- **`vercel.json` asks for `*/15 * * * *`; Hobby allows once per day and
+  *fails the deployment* with "Hobby accounts are limited to daily cron jobs."**
+  Blake confirmed the account is on the free plan. Nothing deploys until this
+  is resolved. Options: (1) Vercel Pro; (2) daily cron — kills the T-15
+  "webinar starting" SMS, which needs ~15-min granularity; (3) external caller
+  hitting `/api/cron` every 15 min — Supabase `pg_cron` + `pg_net` are
+  *available but not installed* in `rilhgeshkypbcckedaoh` (shared project —
+  enabling extensions affects af-tag-review et al.), or a GitHub Actions
+  schedule (imprecise, can be skipped under load).
+  Note `maxDuration = 300` is **fine** on Hobby (fluid compute: default and max
+  are both 300s). Registration → Omnisend does *not* depend on cron; the
+  register route pushes inline. Cron covers the Zoom-native sweep, T-15
+  starting, attended events, attendance sync, and the summary cache.
+- **`/api/cron` is an unauthenticated GET** — anyone with the URL can trigger
+  it. Idempotent via `webinar_send_log`, so it cannot double-send, but it burns
+  Zoom API calls against the rate limit. Add a `CRON_SECRET` bearer check.
+  Required anyway if an external scheduler ends up calling it.
+
+## Merged to `master` 2026-08-20 (built on `staging`, not yet deployed)
+
+Merged as f6a76be; clean merge, `tsc --noEmit` + `npm run build` both pass.
+NOT deployed — blocked on the cron limit above.
 Staging: https://webinar-onetap-staging.vercel.app · TEST webinar 87555460720
 
 - Omnisend integration (per-brand; events + rolling properties + one tag),
