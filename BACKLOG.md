@@ -21,10 +21,12 @@ production unless it says so. Last updated 2026-08-20._
   (previews) and `https://webinar-onetap-staging.vercel.app/auth/callback`;
   tell the team to bookmark the canonical URL. Not fixable in this repo —
   Supabase decides before the request reaches the app.
-- **`OMNISEND_API_KEY_CLOWNANTICS` value is empty.** Three save attempts
-  (dashboard ×2, CLI) all stored 0 characters; `/api/omnisend-test` with
-  `{"probe":true}` reports the length. Suspect the copied source value.
-  FacePaint's key works and is fully verified.
+- ✅ FIXED 2026-08-20 — **`OMNISEND_API_KEY_CLOWNANTICS` now set and verified.**
+  Blake re-saved it; probe shows 75 chars and a live contact-create against the
+  Clownantics Omnisend API returned 200. (Was: three save attempts stored 0
+  characters.) Event types not yet seeded in the Clownantics account — run
+  `/api/omnisend-test` (non-probe) with brand `clownantics` before anyone
+  builds flows there, so the triggers appear in the dropdown.
 - **Zoom dashboard scope** (`dashboard:read:list_webinars:admin`) for
   `/api/zoom-history` — would recover the Feb–May 2026 masterclass sessions
   (attendance + registrations) that predate the app. Older classes are likely
