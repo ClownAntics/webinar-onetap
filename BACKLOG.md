@@ -139,5 +139,6 @@ Staging: https://webinar-onetap-staging.vercel.app · TEST webinar 87555460720
   model** (not applicable, not "missing data"). Revenue block on the detail
   page and the 7-day chip on dashboard cards are now hidden for that brand
   instead of showing a misleading $0. No future integration planned.
-- Poppins font for CareerLearning-branded pages (brand guide specifies it;
-  app uses Montserrat everywhere).
+- ✅ DONE 2026-08-20 — Poppins loaded (next/font) and selected via
+  `--brand-font` for CareerLearning only; verified on prod (CL page computes
+  Poppins, FacePaint still Montserrat). HANDOFF's "upgrade if asked" is done.
