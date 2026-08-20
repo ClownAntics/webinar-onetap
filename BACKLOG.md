@@ -28,10 +28,17 @@ production unless it says so. Last updated 2026-08-20._
   seeded 2026-08-20, so the triggers show in the Clownantics flow-builder
   dropdown. ⚠️ Only build flows on `registered` / `attended` — `starting` is in
   the dropdown but will not fire (T-15 gated off on the free plan).
-- **Zoom dashboard scope** (`dashboard:read:list_webinars:admin`) for
-  `/api/zoom-history` — would recover the Feb–May 2026 masterclass sessions
-  (attendance + registrations) that predate the app. Older classes are likely
-  past Zoom's retention regardless.
+- ❌ DEAD ON PLAN GROUNDS 2026-08-20 — **Zoom Dashboard API is Business+ only.**
+  Blake granted `dashboard:read:list_webinars:admin` and `/api/zoom-history`
+  ran clean, but every month returned Zoom code 200: "only available for ZMP
+  and Business or higher accounts that have enabled the Dashboard feature."
+  `service@facepaint.com` is below that tier. The scope is granted-but-inert;
+  left in place (harmless).
+  **Fallback if the Feb–May 2026 masterclass data is still wanted:** the Report
+  API (already scoped, already working for attendance sync) can import any past
+  webinar *by ID* — Blake reads the IDs off zoom.us → Reports → Webinar for
+  that date range and we sync each one. Subject to Zoom report retention;
+  February may be gone regardless.
 
 ## Link / registration issues
 
