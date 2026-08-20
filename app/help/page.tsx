@@ -57,11 +57,23 @@ export default function HelpPage() {
         <section style={card}>
           <h2 style={h2}>Stats</h2>
           <p style={{ margin: 0 }}>
-            Registration counts and the <b>by-source breakdown</b> (Social / Website / Email / SMS) come
-            straight from <b>Zoom&apos;s tracking sources</b> — the real numbers, not just people who
-            registered through this app. <b>Attendance</b> and the <b>Trends / revenue</b> view populate
-            after the webinar (once attendance syncs).
+            Registration counts blend <b>Zoom&apos;s tracking sources</b> with the app&apos;s own
+            <b> ⚡ one-tap registrations</b> (Zoom&apos;s numbers can&apos;t see people registered via
+            the API, so the app adds them per source). Each webinar&apos;s page also shows
+            <b> page visits</b> and a <b>conversion&nbsp;%</b> — how many visitors actually registered.
+            <b> Attendance</b> and the <b>Trends / revenue</b> view populate after the webinar
+            (attendance syncs on a nightly schedule, so expect up to a day&apos;s lag).
           </p>
+        </section>
+
+        <section style={card}>
+          <h2 style={h2}>Website &amp; social links</h2>
+          <ul>
+            <li style={li}>The <b>plain link</b> (no name/email in it) is safe to post anywhere — the website, social, a blog.</li>
+            <li style={li}><b>Anyone who has registered through the app before gets the one-tap page</b> from that plain link — their browser remembers them (for a year). Brand-new visitors see a short name + email form.</li>
+            <li style={li}>On a shared computer, the <b>&quot;Not you?&quot;</b> button forgets the remembered person.</li>
+            <li style={li}>The <b>&quot;What customers want to see&quot;</b> panel includes answers from people who registered on Zoom&apos;s own page too, not just through the app.</li>
+          </ul>
         </section>
 
         <section style={card}>

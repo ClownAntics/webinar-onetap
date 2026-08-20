@@ -45,8 +45,8 @@ export default function DeveloperPage() {
           <ul>
             <li style={li}><span style={code}>/w/[webinarId]</span> — public one-tap page. <span style={code}>POST /api/register</span> registers via Zoom, returns the personal join_url; on failure it redirects to Zoom&apos;s native registration.</li>
             <li style={li}><span style={code}>/admin</span> — dashboard, detail (setup + status lifecycle + stats + answers), <span style={code}>/admin/trends</span> (revenue charts + CSV).</li>
-            <li style={li}><span style={code}>/api/attendance-sync</span> (<span style={code}>{"{webinarId}"}</span> or <span style={code}>{"{all:true}"}</span>), <span style={code}>/api/cron</span> — attendance, Omnisend sweep/events, summary cache. <span style={code}>/api/admin/webinar/*</span> — save, status, banner upload.</li>
-            <li style={li}><span style={code}>/api/visit</span> — landing-page visit beacon (conversion denominator). <span style={code}>/api/omnisend-test</span> — seed event types / probe keys. <span style={code}>/api/zoom-history</span> — Dashboard-API history scan (needs dashboard scope).</li>
+            <li style={li}><span style={code}>/api/attendance-sync</span> (<span style={code}>{"{webinarId}"}</span> or <span style={code}>{"{all:true}"}</span>), <span style={code}>/api/cron</span> — attendance, Omnisend sweep/events, summary cache. Cron runs <b>daily 05:00 UTC</b> (Vercel Hobby cap) and requires <span style={code}>Authorization: Bearer CRON_SECRET</span>. <span style={code}>/api/admin/webinar/*</span> — save, status, banner upload.</li>
+            <li style={li}><span style={code}>/api/visit</span> — landing-page visit beacon (conversion denominator). <span style={code}>/api/omnisend-test</span> — seed event types / probe keys. <span style={code}>/api/zoom-history</span> — Dashboard-API history scan (CRON_SECRET too; <b>dead on the current Zoom plan</b> — Dashboard API needs Business+).</li>
           </ul>
         </section>
 
@@ -54,7 +54,7 @@ export default function DeveloperPage() {
           <h2 style={h2}>Omnisend (SPEC-omnisend-sms.md)</h2>
           <p style={{ margin: 0 }}>
             Per-brand keys (<span style={code}>OMNISEND_API_KEY_FACEPAINT</span> / <span style={code}>_CLOWNANTICS</span>; CareerLearning none — no-ops).
-            Events <span style={code}>webinar registered / attended / starting</span> (the T-15 one carries the personal <span style={code}>joinUrl</span> for Yumer&apos;s SMS flow),
+            Events <span style={code}>webinar registered / attended / starting</span> — ⚠️ <b>&quot;starting&quot; is gated OFF</b> (<span style={code}>STARTING_ENABLED=false</span> in the cron route; daily-only cron can&apos;t hit a T-15 window — do not build flows on it),
             rolling contact properties (<span style={code}>lastWebinarRegistered/Attended</span>, <span style={code}>webinarsAttendedCount</span>), single tag <span style={code}>webinar-audience</span>.
             Idempotency via <span style={code}>webinar_send_log</span>; registration never blocks on Omnisend — the cron sweep is the retry.
           </p>
@@ -73,8 +73,11 @@ export default function DeveloperPage() {
         <section style={card}>
           <h2 style={h2}>Registration stats</h2>
           <p style={{ margin: 0 }}>
-            Registration counts + by-source come from Zoom <span style={code}>GET /webinars/&#123;id&#125;/tracking_sources</span>
-            (accurate, not app-only). Needs the <span style={code}>webinar:read:list_tracking_sources</span> scope.
+            Registration counts + by-source come from Zoom <span style={code}>GET /webinars/&#123;id&#125;/tracking_sources</span>,
+            blended with the app&apos;s own reg events (Zoom can&apos;t see API registrations — no source_id).
+            Needs the <span style={code}>webinar:read:list_tracking_sources</span> scope. The landing page also sets a
+            1-year <span style={code}>onetap_identity</span> cookie on successful registration — read server-side when the
+            URL has no <span style={code}>?e=</span>, so returning registrants one-tap from plain links.
           </p>
         </section>
 
@@ -93,7 +96,7 @@ export default function DeveloperPage() {
             ZOOM_ACCOUNT_ID / ZOOM_CLIENT_ID / ZOOM_CLIENT_SECRET / ZOOM_HOST_USER_ID<br />
             SUPABASE_URL / SUPABASE_SERVICE_KEY · SALES_SUPABASE_URL / SALES_SUPABASE_KEY<br />
             NEXT_PUBLIC_SUPABASE_URL / NEXT_PUBLIC_SUPABASE_ANON_KEY · ADMIN_ALLOWED_DOMAINS<br />
-            OMNISEND_API_KEY (pending) · NEXT_PUBLIC_SITE_URL
+            OMNISEND_API_KEY_FACEPAINT / OMNISEND_API_KEY_CLOWNANTICS · CRON_SECRET · NEXT_PUBLIC_SITE_URL
           </p>
         </section>
 
