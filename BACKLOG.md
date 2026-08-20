@@ -130,7 +130,11 @@ Staging: https://webinar-onetap-staging.vercel.app · TEST webinar 87555460720
 - ✅ DONE 2026-08-20 — answers panel now merges Zoom-native registrants'
   custom-question answers (fetched live from Zoom on the admin detail page)
   with app answers; app copy wins on overlap, "-" placeholders excluded.
-- Registration stats fetched only for webinars within ~60 days (`RECENT_MS`).
+- ➡️ ACCEPTED AS DESIGNED 2026-08-20 — live Zoom stats fetched only for
+  webinars within ~60 days (`RECENT_MS`): a performance guard, not a bug.
+  Older cards keep title/attendance/revenue from the DB; only the live
+  registration-by-source call is skipped, and those numbers no longer change.
+  The cron summary cache persists finals before the window closes.
 - CareerLearning revenue: their sales aren't in TeamDesk — future integration.
 - Poppins font for CareerLearning-branded pages (brand guide specifies it;
   app uses Montserrat everywhere).
