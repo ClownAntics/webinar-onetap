@@ -5,6 +5,7 @@ import { syncAttendance } from "@/lib/attendance";
 import { computeAllWebinarMetrics, writeSummaryCache } from "@/lib/reporting";
 import { pushRegistration, pushAttended, pushStarting, hasOmnisend, type WebinarEventInfo } from "@/lib/omnisend";
 import type { Brand } from "@/lib/brands";
+import { cronAuthorized } from "@/lib/cron-auth";
 
 export const runtime = "nodejs";
 export const maxDuration = 300;
@@ -42,7 +43,10 @@ interface CronReport {
  * Omnisend pushes and events are recorded in webinar_send_log before/after
  * firing, so reruns never double-send. Per SPEC-omnisend-sms.md.
  */
-export async function GET() {
+export async function GET(req: Request) {
+  if (!cronAuthorized(req)) {
+    return NextResponse.json({ error: "unauthorized" }, { status: 401 });
+  }
   const now = Date.now();
   const r: CronReport = { attendanceSynced: [], omnisendRegistered: 0, omnisendAttended: 0, webinarStarting: 0, errors: [] };
   const sb = appSupabase();

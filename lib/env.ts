@@ -48,6 +48,10 @@ export const env = {
     } as Record<string, string | undefined>,
   },
   siteUrl: optional("NEXT_PUBLIC_SITE_URL") ?? "https://webinars.facepaint.com",
+  // Bearer token for the cron + history endpoints. Vercel's scheduler sends
+  // "Authorization: Bearer <CRON_SECRET>" automatically when this env var is
+  // set. Unset (local dev) => the check is skipped.
+  cronSecret: optional("CRON_SECRET"),
 };
 
 export { required };

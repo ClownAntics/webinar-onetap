@@ -4,6 +4,7 @@ import { appSupabase } from "@/lib/supabase";
 import { cleanWebinarTitle } from "@/lib/format";
 import { syncAttendance } from "@/lib/attendance";
 import { loadMasterclassSales, matchMasterclassSale } from "@/lib/reporting";
+import { cronAuthorized } from "@/lib/cron-auth";
 
 export const runtime = "nodejs";
 export const maxDuration = 300;
@@ -16,6 +17,9 @@ export const maxDuration = 300;
  * attendance and create COMPLETE config rows. Idempotent.
  */
 export async function POST(req: NextRequest) {
+  if (!cronAuthorized(req)) {
+    return NextResponse.json({ error: "unauthorized" }, { status: 401 });
+  }
   const body = (await req.json().catch(() => ({}))) as { from?: string };
   const start = new Date(body.from ?? "2024-06-01");
   const now = new Date();
