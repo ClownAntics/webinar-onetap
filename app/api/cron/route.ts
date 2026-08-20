@@ -11,9 +11,23 @@ export const maxDuration = 300;
 
 // Sweep registrations into Omnisend for webinars starting within this window.
 const SWEEP_DAYS = 14;
-// "webinar starting" fires when 0 < start - now <= this (cron runs every 15min;
+// "webinar starting" fires when 0 < start - now <= this (needs a ~15min cron;
 // webinar_send_log makes overlap harmless).
 const STARTING_WINDOW_MS = 20 * 60_000;
+/**
+ * T-15 "webinar starting" SMS — DISABLED 2026-08-20, purely a hosting limit.
+ *
+ * Vercel's Hobby plan caps cron at ONCE PER DAY and fails the deployment on a
+ * more frequent expression, so vercel.json runs daily. A daily tick can only
+ * land inside a webinar's 20-minute pre-start window by coincidence, which
+ * would text a lucky few registrants and silently skip everyone else —
+ * inconsistent sends are worse than none, so the block is gated off entirely.
+ *
+ * TO RESTORE: upgrade to Vercel Pro (or point an external scheduler at
+ * /api/cron behind CRON_SECRET), set the vercel.json schedule back to every
+ * 15 minutes, and flip this to true. Nothing else needs to change.
+ */
+const STARTING_ENABLED = false;
 
 interface CronReport {
   attendanceSynced: string[];
@@ -108,7 +122,8 @@ export async function GET() {
   }
 
   // ---- 3) "webinar starting" events at T-15 (join link for the SMS flow) ----
-  for (const w of upcoming) {
+  // Gated off on the daily-cron schedule — see STARTING_ENABLED above.
+  for (const w of STARTING_ENABLED ? upcoming : []) {
     const info = infoFor(w);
     if (!hasOmnisend(info.brand)) continue;
     const start = info.startTime ? new Date(info.startTime).getTime() : null;

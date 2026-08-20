@@ -49,21 +49,28 @@ production unless it says so. Last updated 2026-08-20._
   the name fields — Zoom requires a name, and `-` breaks Yumer's
   personalization.
 
-## Deploy blocker — Vercel Hobby cron limit (2026-08-20)
+## Vercel Hobby cron limit (2026-08-20)
 
-- **`vercel.json` asks for `*/15 * * * *`; Hobby allows once per day and
-  *fails the deployment* with "Hobby accounts are limited to daily cron jobs."**
-  Blake confirmed the account is on the free plan. Nothing deploys until this
-  is resolved. Options: (1) Vercel Pro; (2) daily cron — kills the T-15
-  "webinar starting" SMS, which needs ~15-min granularity; (3) external caller
-  hitting `/api/cron` every 15 min — Supabase `pg_cron` + `pg_net` are
-  *available but not installed* in `rilhgeshkypbcckedaoh` (shared project —
-  enabling extensions affects af-tag-review et al.), or a GitHub Actions
-  schedule (imprecise, can be skipped under load).
+- ✅ RESOLVED BY DECISION 2026-08-20 — **cron is now daily (`0 5 * * *` UTC,
+  ~1am ET), and the T-15 "webinar starting" SMS is dropped.** Hobby caps cron at
+  once per day and *fails the deployment* on a more frequent expression, so the
+  original `*/15 * * * *` could never have shipped. Blake chose the free option
+  over Vercel Pro. The T-15 code is intact but gated behind
+  `STARTING_ENABLED = false` in `app/api/cron/route.ts` — a daily tick would
+  otherwise text a coincidental few registrants and skip everyone else.
+  **⚠️ Tell Yumer not to build the SMS flow — its trigger event will not fire.**
   Note `maxDuration = 300` is **fine** on Hobby (fluid compute: default and max
-  are both 300s). Registration → Omnisend does *not* depend on cron; the
-  register route pushes inline. Cron covers the Zoom-native sweep, T-15
-  starting, attended events, attendance sync, and the summary cache.
+  are both 300s) — an earlier concern that turned out not to apply.
+- **OPEN — restoring T-15 needs sub-daily cron.** Either Vercel Pro ($20/mo,
+  zero code change) or an external caller hitting `/api/cron` every 15 min:
+  Supabase `pg_cron` + `pg_net` are *available but not installed* in
+  `rilhgeshkypbcckedaoh` (shared project — enabling extensions affects
+  af-tag-review et al.); GitHub Actions is free but too imprecise for T-15.
+  Requires the `CRON_SECRET` item below first.
+- **⚠️ Daily cron delays everything else too.** Attendance sync, the Zoom-native
+  registration sweep, "webinar attended" events, and the summary cache now lag
+  by up to ~24h (Hobby timing is also ±59 min). Registration → Omnisend is
+  unaffected — the register route pushes inline, not via cron.
 - **`/api/cron` is an unauthenticated GET** — anyone with the URL can trigger
   it. Idempotent via `webinar_send_log`, so it cannot double-send, but it burns
   Zoom API calls against the rate limit. Add a `CRON_SECRET` bearer check.
@@ -72,7 +79,7 @@ production unless it says so. Last updated 2026-08-20._
 ## Merged to `master` 2026-08-20 (built on `staging`, not yet deployed)
 
 Merged as f6a76be; clean merge, `tsc --noEmit` + `npm run build` both pass.
-NOT deployed — blocked on the cron limit above.
+NOT deployed yet — cron limit resolved, awaiting deploy.
 Staging: https://webinar-onetap-staging.vercel.app · TEST webinar 87555460720
 
 - Omnisend integration (per-brand; events + rolling properties + one tag),

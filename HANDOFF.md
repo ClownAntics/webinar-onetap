@@ -157,8 +157,9 @@ See **SPEC-omnisend-sms.md** for the agreed spec, staging facts (URL, TEST webin
 staging: per-brand Omnisend integration (`lib/omnisend.ts` v5: "webinar
 registered/attended/starting" events, rolling props, `webinar-audience` tag; all three
 event types seeded in FacePaint so flow-trigger dropdowns show them), cron jobs
-(registration sweep / T-15 join-link events / attended events, idempotent via
-`webinar_send_log`), visit tracking (migration `0005`, beacon → `webinar_visits`,
+(registration sweep / attended events, idempotent via `webinar_send_log`; the
+T-15 join-link event is built but **gated off** — `STARTING_ENABLED = false`,
+because Hobby-plan cron only runs daily, see SPEC-omnisend-sms.md Item 2), visit tracking (migration `0005`, beacon → `webinar_visits`,
 conversion tiles), dashboard blend (⚡ one-tap chips + start times), last-name field
 in manual entry, `/api/omnisend-test` (seeds events; `probe:true` returns key lengths),
 `/api/zoom-history` (Dashboard-API scan — parked: needs the

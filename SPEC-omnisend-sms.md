@@ -30,6 +30,15 @@ gathered by Yumer's post-registration opt-in flow.
 
 ## Item 2 — Join-link event before each webinar (SMS via Omnisend)
 
+> ⛔ **NOT SHIPPED — disabled 2026-08-20.** Built and verified on staging, but
+> Vercel's Hobby (free) plan caps cron at **once per day** and fails the
+> deployment on a more frequent expression. A daily tick cannot reliably hit a
+> T-15 window, and sending to a coincidental few is worse than sending to none,
+> so `STARTING_ENABLED = false` in `app/api/cron/route.ts` gates the block off.
+> The code is intact — restoring it is a Pro upgrade (or an external scheduler
+> behind `CRON_SECRET`), the 15-minute schedule in `vercel.json`, and one flag.
+> **Tell Yumer not to build the SMS flow yet — the trigger event will not fire.**
+
 - At **T-15 minutes** before start, the cron fires a `webinar starting` custom event
   **per registrant**, carrying their personal `join_url` (pulled from Zoom at send
   time, so native registrants are included), plus `webinar_id`, `topic`, `start_time`.
@@ -86,4 +95,5 @@ gathered by Yumer's post-registration opt-in flow.
 
 - Rebuild webinar segments on events/properties (drop legacy tag imports).
 - Post-registration flow triggered by `webinar registered` (incl. SMS opt-in ask).
-- SMS flow triggered by `webinar starting` using the `join_url` property.
+- ~~SMS flow triggered by `webinar starting` using the `join_url` property.~~
+  **On hold** — the event does not fire on the free plan (see Item 2).
