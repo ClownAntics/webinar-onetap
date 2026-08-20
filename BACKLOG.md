@@ -117,8 +117,11 @@ Staging: https://webinar-onetap-staging.vercel.app · TEST webinar 87555460720
 
 ## Smaller / lower confidence
 
-- Yumer reported the "Copy link" button not working in his browser
-  (clipboard API can fail in some contexts) — needs a fallback; unreproduced.
+- ✅ ALREADY DONE (noticed 2026-08-20) — the copy button has had a full
+  fallback ladder since 0f8021a (2026-08-18) and it's live in prod:
+  `navigator.clipboard` → legacy `execCommand("copy")` → "Select and copy ↓"
+  revealing the link for manual copy. No silent-failure path remains.
+  Residual: ask Yumer to try again and confirm which layer he lands on.
 - Answers panel only shows app-registered answers; could pull Zoom registrants.
 - Registration stats fetched only for webinars within ~60 days (`RECENT_MS`).
 - CareerLearning revenue: their sales aren't in TeamDesk — future integration.
