@@ -5,7 +5,7 @@ import StatusPill from "../status-pill";
 import SetupPanel from "./setup-panel";
 import CopyButton from "./copy-button";
 import { appSupabase, fetchAllRows } from "@/lib/supabase";
-import { getWebinar, getRegistrantQuestions, getTrackingSources, type TrackingSource } from "@/lib/zoom";
+import { getWebinar, getRegistrantQuestions, getTrackingSources, type TrackingSource , fetchRegistrants } from "@/lib/zoom";
 import { cleanWebinarTitle } from "@/lib/format";
 import { computeOneWebinarMetrics } from "@/lib/reporting";
 import { STATUS_META, autoAdjust } from "@/lib/status";
@@ -39,6 +39,8 @@ interface Detail {
   zoomQuestion?: string;
   zoomBanner?: string;
   trackingSources: TrackingSource[];
+  /** Custom-question answers from Zoom-native registrants (not via the app). */
+  zoomAnswers: { email: string; answer: string }[];
   regEvents: RegEvent[];
   attendance: AttRow[];
   dbError?: string;
@@ -80,11 +82,22 @@ async function loadDetail(webinarId: string): Promise<Detail> {
     dbError = err instanceof Error ? err.message : String(err);
   }
 
-  const [zw, questions, trackingSources] = await Promise.all([
+  const [zw, questions, trackingSources, zoomRegs] = await Promise.all([
     getWebinar(webinarId).catch(() => null),
     getRegistrantQuestions(webinarId).catch(() => [] as string[]),
     getTrackingSources(webinarId).catch(() => [] as TrackingSource[]),
+    fetchRegistrants(webinarId).catch(() => []),
   ]);
+
+  // Zoom-native registrants answer the same custom question, but their answers
+  // live only in Zoom. "-" is the app's own placeholder for required-question
+  // retries — never a real answer.
+  const zoomAnswers = zoomRegs.flatMap((r) =>
+    (r.custom_questions ?? [])
+      .map((q) => (q.value ?? "").trim())
+      .filter((v) => v && v !== "-")
+      .map((answer) => ({ email: r.email.toLowerCase(), answer }))
+  );
   // Zoom's API doesn't expose the registration-page banner image (branding is
   // web-UI only, and the page's og:image is just the FP logo), so we don't
   // auto-fill the banner — it's uploaded via Supabase Storage instead.
@@ -100,6 +113,7 @@ async function loadDetail(webinarId: string): Promise<Detail> {
     zoomQuestion: questions[0] || undefined,
     zoomBanner,
     trackingSources,
+    zoomAnswers,
     regEvents,
     attendance,
     dbError,
@@ -124,9 +138,16 @@ export default async function WebinarDetail({
   // Show all channels (incl. SMS at 0), highest registrations first.
   const sources = [...d.trackingSources].sort((a, b) => b.registration_count - a.registration_count);
 
-  const answers = d.regEvents
+  // App answers first, then Zoom-native ones from emails the app hasn't seen
+  // (the app copy wins on overlap — same person, same answer, fresher casing).
+  const appAnswers = d.regEvents
     .filter((r) => r.question_answer && r.question_answer.trim())
     .map((r) => ({ email: r.email, answer: r.question_answer!.trim() }));
+  const appAnswerEmails = new Set(appAnswers.map((a) => a.email.toLowerCase()));
+  const answers = [
+    ...appAnswers,
+    ...d.zoomAnswers.filter((a) => !appAnswerEmails.has(a.email)),
+  ];
 
   // One-tap (app) registrations — Zoom's tracking counts can't see these.
   const oneTapUnique = new Set(

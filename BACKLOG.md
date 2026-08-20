@@ -127,7 +127,9 @@ Staging: https://webinar-onetap-staging.vercel.app · TEST webinar 87555460720
   `navigator.clipboard` → legacy `execCommand("copy")` → "Select and copy ↓"
   revealing the link for manual copy. No silent-failure path remains.
   Residual: ask Yumer to try again and confirm which layer he lands on.
-- Answers panel only shows app-registered answers; could pull Zoom registrants.
+- ✅ DONE 2026-08-20 — answers panel now merges Zoom-native registrants'
+  custom-question answers (fetched live from Zoom on the admin detail page)
+  with app answers; app copy wins on overlap, "-" placeholders excluded.
 - Registration stats fetched only for webinars within ~60 days (`RECENT_MS`).
 - CareerLearning revenue: their sales aren't in TeamDesk — future integration.
 - Poppins font for CareerLearning-branded pages (brand guide specifies it;
