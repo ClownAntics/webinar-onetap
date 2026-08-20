@@ -64,7 +64,7 @@ body {
 body {
   background: var(--fp-bg);
   color: var(--fp-white);
-  font-family: var(--font-montserrat), system-ui, -apple-system, sans-serif;
+  font-family: var(--brand-font, var(--font-montserrat)), system-ui, -apple-system, sans-serif;
   -webkit-font-smoothing: antialiased;
 }
 

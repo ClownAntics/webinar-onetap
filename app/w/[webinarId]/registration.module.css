@@ -1,4 +1,7 @@
 .stage {
+  /* Re-resolve the font here: the brand vars (incl. --brand-font) are inline
+     on this element, and body's font-family computed before they existed. */
+  font-family: var(--brand-font, var(--font-montserrat)), system-ui, -apple-system, sans-serif;
   min-height: 100vh;
   display: flex;
   justify-content: center;

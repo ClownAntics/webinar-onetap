@@ -80,6 +80,7 @@ export const BRAND_THEMES: Record<Brand, BrandTheme> = {
     disclosure: "By registering, you join the CareerLearning.com mailing list. Unsubscribe anytime.",
     confetti: false,
     vars: {
+      "--brand-font": "var(--font-poppins)", // brand guide specifies Poppins
       "--fp-bg": "#ffffff",
       "--fp-white": "#2e3192",
       "--fp-text-85": "rgba(46, 49, 146, 0.9)",
