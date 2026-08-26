@@ -26,7 +26,7 @@ export default function DeveloperPage() {
           <h2 style={h2}>Stack</h2>
           <ul>
             <li style={li}>Next.js (App Router) + TypeScript on <b>Vercel</b>.</li>
-            <li style={li}>Repo: <span style={code}>github.com/bcabot202/webinar-onetap</span>. Full build notes in <span style={code}>SETUP.md</span> / <span style={code}>README-build-v3.md</span>.</li>
+            <li style={li}>Repo: <span style={code}>github.com/ClownAntics/webinar-onetap</span>. Full build notes in <span style={code}>SETUP.md</span> / <span style={code}>README-build-v3.md</span>.</li>
             <li style={li}><b>Supabase</b> (project <span style={code}>rilhgeshkypbcckedaoh</span>) — Google auth + the <span style={code}>webinar_*</span> tables + the <span style={code}>td_order</span> sales mirror.</li>
             <li style={li}><b>Zoom</b> Server-to-Server OAuth (&quot;Webinar Data Collector&quot; app). <b>Omnisend</b> for lifecycle emails.</li>
           </ul>

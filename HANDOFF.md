@@ -14,7 +14,7 @@ replay sends, tease/reminder emails) is handled OUTSIDE this app** — those fie
 were removed.
 
 ## Live
-- **Repo:** https://github.com/bcabot202/webinar-onetap (public), branch `master`
+- **Repo:** https://github.com/ClownAntics/webinar-onetap (public), branch `master`
 - **Prod:** https://webinar-onetap.vercel.app  (Vercel project `webinar-onetap`, org `bcabot202s-projects`)
 - **Deploy:** `vercel deploy --prod --yes` from the repo. `gh` + `vercel` CLIs are authed as `bcabot202`.
 - **Auth:** Supabase Google login, gated to `@clownantics.com` / `@facepaint.com` / `@careerlearning.com`.
