@@ -55,6 +55,14 @@ export default function HelpPage() {
         </section>
 
         <section style={card}>
+          <h2 style={h2}>Rescheduling a webinar</h2>
+          <ul>
+            <li style={li}><b>Change the date/time in Zoom</b> — Zoom is the source of truth. The app picks it up overnight, or instantly if you open the webinar in Admin and hit <b>Save</b>.</li>
+            <li style={li}><b>The banner image does not update itself</b> — if the date is printed on the banner, upload a corrected one.</li>
+          </ul>
+        </section>
+
+        <section style={card}>
           <h2 style={h2}>Stats</h2>
           <p style={{ margin: 0 }}>
             Registration counts blend <b>Zoom&apos;s tracking sources</b> with the app&apos;s own

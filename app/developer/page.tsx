@@ -45,7 +45,7 @@ export default function DeveloperPage() {
           <ul>
             <li style={li}><span style={code}>/w/[webinarId]</span> — public one-tap page. <span style={code}>POST /api/register</span> registers via Zoom, returns the personal join_url; on failure it redirects to Zoom&apos;s native registration.</li>
             <li style={li}><span style={code}>/admin</span> — dashboard, detail (setup + status lifecycle + stats + answers), <span style={code}>/admin/trends</span> (revenue charts + CSV).</li>
-            <li style={li}><span style={code}>/api/attendance-sync</span> (<span style={code}>{"{webinarId}"}</span> or <span style={code}>{"{all:true}"}</span>), <span style={code}>/api/cron</span> — attendance, Omnisend sweep/events, summary cache. Cron runs <b>daily 05:00 UTC</b> (Vercel Hobby cap) and requires <span style={code}>Authorization: Bearer CRON_SECRET</span>. <span style={code}>/api/admin/webinar/*</span> — save, status, banner upload.</li>
+            <li style={li}><span style={code}>/api/attendance-sync</span> (<span style={code}>{"{webinarId}"}</span> or <span style={code}>{"{all:true}"}</span>), <span style={code}>/api/cron</span> — schedule refresh (Zoom&apos;s start_time is the source of truth; reschedules propagate to <span style={code}>webinar_config</span> within a day), attendance, Omnisend sweep/events, summary cache. Cron runs <b>daily 05:00 UTC</b> (Vercel Hobby cap) and requires <span style={code}>Authorization: Bearer CRON_SECRET</span>. <span style={code}>/api/admin/webinar/*</span> — save, status, banner upload.</li>
             <li style={li}><span style={code}>/api/visit</span> — landing-page visit beacon (conversion denominator). <span style={code}>/api/omnisend-test</span> — seed event types / probe keys. <span style={code}>/api/zoom-history</span> — Dashboard-API history scan (CRON_SECRET too; <b>dead on the current Zoom plan</b> — Dashboard API needs Business+).</li>
           </ul>
         </section>
@@ -87,6 +87,7 @@ export default function DeveloperPage() {
             <li style={li}>Webinar scopes are filed under the <b>&quot;Meetings&quot;</b> product in Add Scopes — there is <b>no &quot;Webinar&quot; category</b>. If a scope looks &quot;missing,&quot; click <b>Meetings</b>.</li>
             <li style={li}>Registration needs <span style={code}>webinar:write:registrant:admin</span>; stats need <span style={code}>webinar:read:list_tracking_sources:admin</span>. After adding scopes, redeploy (the S2S token is cached ~55 min).</li>
             <li style={li}>The webinar&apos;s custom question must be <b>not required</b>, or <span style={code}>POST registrants</span> returns code 300.</li>
+            <li style={li}><b>Schedule truth:</b> a webinar rescheduled in Zoom used to keep its stale date here forever (save preferred the stored snapshot). Since 2026-08-26, save + the daily cron both take Zoom&apos;s start_time; the stored value is only a fallback when Zoom is unreachable.</li>
           </ul>
         </section>
 
