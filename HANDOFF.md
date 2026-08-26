@@ -27,6 +27,21 @@ were removed.
   `https://webinar-onetap-*-bcabot202s-projects.vercel.app/auth/callback` (previews).
   Nothing in this repo can fix it — Supabase decides before the user reaches the app.
 
+## V2 design track (started 2026-08-26)
+Blake is redesigning the app (Claude Design; brief in `CLAUDE-DESIGN-BRIEF.md`).
+**Production stays on `master`** — v2 work happens on the **`v2` branch** only.
+- Stable v2 URL: **https://webinar-onetap-v2.vercel.app** (a Vercel alias; after
+  each v2 deploy, re-point it: `vercel deploy --yes` from the `v2` branch, then
+  `vercel alias set <deployment-url> webinar-onetap-v2.vercel.app`). Never
+  `--prod` from v2.
+- v2 shares the prod database + env vars (same model as the old staging track,
+  Blake's explicit choice) — **registrations made on v2 pages are REAL** (Zoom +
+  Omnisend). Test only against TEST webinar **87555460720**.
+- ⚠️ Admin login on the v2 URL bounces to af-tag-review (the accepted
+  redirect-URL issue) — use the canonical prod /admin, or add
+  `https://webinar-onetap-v2.vercel.app/auth/callback` to Supabase Redirect URLs.
+- Merge v2 → master only on Blake's sign-off, same as the staging launch.
+
 ## Multi-org branding (Aug 2026)
 The app (named **"OneTap Webinars"**, tap-ripple `app/icon.svg` favicon) serves **three
 orgs**: FacePaint, Clownantics, CareerLearning — all webinars on the same Zoom account
