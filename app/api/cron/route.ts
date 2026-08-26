@@ -31,6 +31,7 @@ const STARTING_WINDOW_MS = 20 * 60_000;
 const STARTING_ENABLED = false;
 
 interface CronReport {
+  scheduleRefreshed: string[];
   attendanceSynced: string[];
   omnisendRegistered: number;
   omnisendAttended: number;
@@ -48,7 +49,7 @@ export async function GET(req: Request) {
     return NextResponse.json({ error: "unauthorized" }, { status: 401 });
   }
   const now = Date.now();
-  const r: CronReport = { attendanceSynced: [], omnisendRegistered: 0, omnisendAttended: 0, webinarStarting: 0, errors: [] };
+  const r: CronReport = { scheduleRefreshed: [], attendanceSynced: [], omnisendRegistered: 0, omnisendAttended: 0, webinarStarting: 0, errors: [] };
   const sb = appSupabase();
 
   let upcoming: ZoomWebinar[] = [];
@@ -67,6 +68,28 @@ export async function GET(req: Request) {
     .from("webinar_config")
     .select("webinar_id, brand, display_title, zoom_topic, start_time");
   const cfg = new Map((cfgData ?? []).map((c) => [c.webinar_id, c]));
+
+  // ---- 0) Schedule refresh: Zoom is the source of truth for start times. ----
+  // A webinar rescheduled in Zoom otherwise keeps its stale date here forever
+  // (bit us 2026-08-26: masterclass moved Sep 10 -> Sep 24, app kept Sep 10).
+  for (const w of upcoming) {
+    const c = cfg.get(w.id);
+    if (!c || !w.start_time) continue;
+    const zoomMs = new Date(w.start_time).getTime();
+    const storedMs = c.start_time ? new Date(c.start_time).getTime() : NaN;
+    if (zoomMs === storedMs) continue;
+    try {
+      const end = new Date(zoomMs + (w.duration ?? 60) * 60_000).toISOString();
+      await sb
+        .from("webinar_config")
+        .update({ start_time: w.start_time, end_time: end })
+        .eq("webinar_id", w.id);
+      c.start_time = w.start_time; // keep this run's event payloads correct too
+      r.scheduleRefreshed.push(w.id);
+    } catch (err) {
+      r.errors.push(`schedule-refresh ${w.id}: ${err instanceof Error ? err.message : String(err)}`);
+    }
+  }
   const infoFor = (w: ZoomWebinar): WebinarEventInfo => {
     const c = cfg.get(w.id);
     return {

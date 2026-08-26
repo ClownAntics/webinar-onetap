@@ -42,12 +42,14 @@ export async function POST(req: NextRequest) {
 
   // Zoom facts (topic/times) — best-effort; fall back to existing.
   const zw = await getWebinar(body.webinarId).catch(() => null);
-  const startTime = existing?.start_time ?? zw?.start_time ?? null;
-  const endTime =
-    existing?.end_time ??
-    (zw?.start_time
-      ? new Date(new Date(zw.start_time).getTime() + (zw.duration ?? 60) * 60_000).toISOString()
-      : null);
+  // Zoom is the source of truth for the schedule: a webinar rescheduled in
+  // Zoom must win over our stored snapshot (a stale date feeds the landing
+  // page, calendar buttons, and Omnisend events). Stored value is only the
+  // fallback when Zoom is unreachable.
+  const startTime = zw?.start_time ?? existing?.start_time ?? null;
+  const endTime = zw?.start_time
+    ? new Date(new Date(zw.start_time).getTime() + (zw.duration ?? 60) * 60_000).toISOString()
+    : existing?.end_time ?? null;
   const endPassed = endTime ? Date.now() > new Date(endTime).getTime() : false;
 
   // Answers count (threshold for EMAIL_ARTIST).
