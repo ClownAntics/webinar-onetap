@@ -242,17 +242,28 @@ export default function RegistrationClient(props: {
               </div>
             )}
 
-            <button className={styles.cta} onClick={register} disabled={!email}>
-              SAVE MY SEAT
-            </button>
-
+            {/* The question sits ABOVE the CTA (moved 2026-08-27): below the
+                button almost nobody saw it, and these answers drive the
+                requested-designs block in every reminder email. */}
+            <div style={{ textAlign: "center", marginTop: 2 }}>
+              <div style={{ fontSize: 16, fontWeight: 800, color: "var(--fp-white)" }}>
+                {config?.question_text ?? "What would you like to see?"}
+              </div>
+              <div style={{ fontSize: 12.5, color: "var(--fp-text-60)", marginTop: 2 }}>
+                We share the most-requested designs with the artist before the show. (optional)
+              </div>
+            </div>
             <textarea
               className={styles.textarea}
               rows={2}
-              placeholder={`${config?.question_text ?? "What would you like to see?"} (optional)`}
+              placeholder="Butterflies? Superheroes? Quick cheek art?"
               value={answer}
               onChange={(e) => setAnswer(e.target.value)}
             />
+
+            <button className={styles.cta} onClick={register} disabled={!email}>
+              SAVE MY SEAT
+            </button>
 
             {config?.agenda && <p className={styles.agenda}>{config.agenda}</p>}
 
