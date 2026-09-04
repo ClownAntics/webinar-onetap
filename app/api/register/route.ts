@@ -127,7 +127,7 @@ export async function POST(req: NextRequest): Promise<NextResponse<RegisterResul
     try {
       const ok = await pushRegistration(
         { webinarId, topic: title ?? webinarId, startTime: startTime ?? null, brand },
-        { email, firstName }
+        { email, firstName, joinUrl: joinUrl! }
       );
       if (ok) {
         await appSupabase()

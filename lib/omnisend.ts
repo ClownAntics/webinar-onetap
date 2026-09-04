@@ -1,5 +1,6 @@
 import { env } from "./env";
 import type { Brand } from "./brands";
+import { bucketFor } from "./ab";
 
 /**
  * Omnisend client (API v5) — per-brand accounts (SPEC-omnisend-sms.md).
@@ -46,7 +47,7 @@ export interface WebinarEventInfo {
 }
 
 /** Upsert the contact (email subscribed per landing-page disclosure). */
-async function upsertContact(
+export async function upsertContact(
   apiKey: string,
   email: string,
   firstName: string | undefined,
@@ -76,22 +77,36 @@ async function fireEvent(
   });
 }
 
-/** Registration: contact upsert + "webinar registered" event. */
+/**
+ * Registration: contact upsert + "webinar registered" event.
+ *
+ * `joinUrl` is stored as the rolling `last_webinar_join_url` property so
+ * scheduled campaigns can personalise the day-of join link — a campaign is not
+ * a flow, so it cannot read event properties, only contact properties. Without
+ * it the day-of SMS ships an empty link (caught 2026-08-27). Single-valued by
+ * nature: someone registered for two upcoming webinars holds the newer link.
+ */
 export async function pushRegistration(
   w: WebinarEventInfo,
-  contact: { email: string; firstName?: string }
+  contact: { email: string; firstName?: string; joinUrl?: string | null }
 ): Promise<boolean> {
   const apiKey = keyFor(w.brand);
   if (!apiKey) return false; // brand without Omnisend (or key unset) — silent no-op
   const day = (w.startTime ?? "").slice(0, 10);
   const ok = await upsertContact(apiKey, contact.email, contact.firstName, {
     lastWebinarRegistered: day,
+    // Stable A/B arm — the two SMS/time test segments filter on this.
+    ab_bucket: bucketFor(contact.email),
+    ...(contact.joinUrl
+      ? { last_webinar_join_url: contact.joinUrl, last_webinar_topic: w.topic }
+      : {}),
   });
   const ev = await fireEvent(apiKey, "webinar registered", contact.email, {
     webinarId: w.webinarId,
     topic: w.topic,
     webinarDate: day,
     brand: w.brand,
+    joinUrl: contact.joinUrl ?? undefined,
   });
   return ok && ev;
 }

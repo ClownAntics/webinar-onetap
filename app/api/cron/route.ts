@@ -138,7 +138,8 @@ export async function GET(req: Request) {
       for (const reg of regs) {
         const email = (reg.email ?? "").toLowerCase().trim();
         if (!email || logged.has(`${w.id}|omnisend_registered|${email}`)) continue;
-        if (await pushRegistration(info, { email, firstName: reg.first_name })) {
+        // Zoom's registrant listing carries each person's personal join_url.
+        if (await pushRegistration(info, { email, firstName: reg.first_name, joinUrl: reg.join_url })) {
           mark(w.id, "omnisend_registered", email);
           r.omnisendRegistered++;
         }

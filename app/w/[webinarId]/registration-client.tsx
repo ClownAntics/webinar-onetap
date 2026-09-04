@@ -116,7 +116,9 @@ export default function RegistrationClient(props: {
   // so link scanners/bots don't count; preview loads excluded.
   useEffect(() => {
     if (props.preview) return;
-    const payload = JSON.stringify({ webinarId, source: props.source });
+    // Include the identity when we have one (personalized link or remembered
+    // registrant) — turns the visit log into a first-party click record.
+    const payload = JSON.stringify({ webinarId, source: props.source, email: props.email || undefined });
     try {
       if (!navigator.sendBeacon?.("/api/visit", new Blob([payload], { type: "application/json" }))) {
         fetch("/api/visit", { method: "POST", headers: { "Content-Type": "application/json" }, body: payload, keepalive: true }).catch(() => {});
