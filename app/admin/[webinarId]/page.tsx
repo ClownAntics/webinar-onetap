@@ -7,6 +7,7 @@ import CopyButton from "./copy-button";
 import { appSupabase, fetchAllRows } from "@/lib/supabase";
 import { getWebinar, getRegistrantQuestions, getTrackingSources, type TrackingSource , fetchRegistrants } from "@/lib/zoom";
 import { cleanWebinarTitle } from "@/lib/format";
+import { topDesigns } from "@/lib/answers";
 import { computeOneWebinarMetrics } from "@/lib/reporting";
 import { STATUS_META, autoAdjust } from "@/lib/status";
 import { env } from "@/lib/env";
@@ -32,6 +33,8 @@ interface AttRow {
 interface Detail {
   config: WebinarConfig | null;
   visits: number;
+  /** Landing-page visits per source tag (the app's own, bot-filtered). */
+  visitsBySource: Record<string, number>;
   topic: string;
   rawTopic: string | null;
   startTime: string | null;
@@ -51,6 +54,7 @@ async function loadDetail(webinarId: string): Promise<Detail> {
   let regEvents: RegEvent[] = [];
   let attendance: AttRow[] = [];
   let visits = 0;
+  const visitsBySource: Record<string, number> = {};
   let dbError: string | undefined;
 
   try {
@@ -70,11 +74,14 @@ async function loadDetail(webinarId: string): Promise<Detail> {
     // Landing-page visits (denominator for conversion). Table arrives with
     // migration 0005 — degrade to 0 until then.
     try {
-      const { count } = await sb
-        .from("webinar_visits")
-        .select("id", { count: "exact", head: true })
-        .eq("webinar_id", webinarId);
-      visits = count ?? 0;
+      const rows = await fetchAllRows<{ source: string | null }>((from, to) =>
+        sb.from("webinar_visits").select("source").eq("webinar_id", webinarId).order("id").range(from, to)
+      );
+      visits = rows.length;
+      for (const r of rows) {
+        const k = (r.source ?? "direct").toLowerCase();
+        visitsBySource[k] = (visitsBySource[k] ?? 0) + 1;
+      }
     } catch {
       visits = 0;
     }
@@ -106,6 +113,7 @@ async function loadDetail(webinarId: string): Promise<Detail> {
   return {
     config,
     visits,
+    visitsBySource,
     topic: config?.display_title ?? config?.zoom_topic ?? zw?.topic ?? webinarId,
     rawTopic: zw?.topic ?? config?.zoom_topic ?? null,
     startTime: config?.start_time ?? zw?.start_time ?? null,
@@ -150,6 +158,29 @@ export default async function WebinarDetail({
   ];
 
   // One-tap (app) registrations — Zoom's tracking counts can't see these.
+  // Conversion per channel, from the app's own visit + registration logs.
+  // Zoom's tracking block below only sees Zoom's tracked links; this is the
+  // honest per-channel picture for one-tap traffic.
+  const regsBySource = new Map<string, Set<string>>();
+  for (const r of d.regEvents) {
+    if (r.status !== "success" || r.source === "backfill") continue;
+    const k = (r.source ?? "direct").toLowerCase();
+    if (!regsBySource.has(k)) regsBySource.set(k, new Set());
+    regsBySource.get(k)!.add(r.email.toLowerCase());
+  }
+  const channelKeys = new Set([...Object.keys(d.visitsBySource), ...regsBySource.keys()]);
+  const channels = [...channelKeys]
+    .map((k) => {
+      const v = d.visitsBySource[k] ?? 0;
+      const reg = regsBySource.get(k)?.size ?? 0;
+      return { name: k, visits: v, registrations: reg, rate: v > 0 ? Math.round((reg / v) * 100) : null };
+    })
+    .filter((c) => c.visits > 0 || c.registrations > 0)
+    .sort((a, b) => b.registrations - a.registrations);
+
+  // The most-requested themes, distilled from the free-text answers.
+  const topRequests = topDesigns(answers.map((a) => a.answer), 6);
+
   const oneTapUnique = new Set(
     d.regEvents.filter((r) => r.status === "success" && r.source !== "backfill").map((r) => r.email.toLowerCase())
   ).size;
@@ -242,6 +273,8 @@ export default async function WebinarDetail({
                 {hasAttendance && <StatTile label="Show rate" value={`${showRate}%`} tone="green" />}
               </div>
 
+              <ChannelBlock channels={channels} />
+
               <TrackingSourcesBlock sources={sources} />
 
               {metrics && <RevenueBlock m={metrics} />}
@@ -271,6 +304,16 @@ export default async function WebinarDetail({
                   />
                 )}
               </div>
+              {topRequests.length > 0 && (
+                <div style={{ display: "flex", gap: 6, flexWrap: "wrap", alignItems: "center", margin: "8px 0 10px" }}>
+                  <span style={{ fontSize: 11.5, color: "#777", fontWeight: 700 }}>Top requests:</span>
+                  {topRequests.map((t) => (
+                    <span key={t} style={{ background: "#E3F1FA", color: "#0C84A4", borderRadius: 999, padding: "3px 10px", fontSize: 12.5, fontWeight: 700 }}>
+                      {t}
+                    </span>
+                  ))}
+                </div>
+              )}
               {answers.length === 0 ? (
                 <div style={{ fontSize: 13, color: "#999" }}>Answers appear here as people register.</div>
               ) : (
@@ -304,6 +347,43 @@ function StatTile({ label, value, tone }: { label: string; value: number | strin
   );
 }
 
+/**
+ * Visits -> registrations -> conversion per channel, from the app's own logs.
+ * Visits are bot-filtered (the beacon needs a real browser), so these rates are
+ * honest in a way Omnisend's click counts are not.
+ */
+function ChannelBlock({
+  channels,
+}: {
+  channels: { name: string; visits: number; registrations: number; rate: number | null }[];
+}) {
+  if (channels.length === 0) return null;
+  const label = (k: string) => (k === "sms" ? "SMS" : k.charAt(0).toUpperCase() + k.slice(1));
+  return (
+    <div>
+      <div style={{ fontSize: 11.5, color: "#777", fontWeight: 700, marginBottom: 6 }}>
+        By channel (one-tap) — visits → registrations
+      </div>
+      <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12.5 }}>
+        <tbody>
+          {channels.map((c) => (
+            <tr key={c.name} style={{ borderTop: "1px solid #f0eee9" }}>
+              <td style={{ padding: "5px 0", fontWeight: 700 }}>{label(c.name)}</td>
+              <td style={{ padding: "5px 0", textAlign: "right", color: "#777" }}>{c.visits.toLocaleString()} visits</td>
+              <td style={{ padding: "5px 0 5px 12px", textAlign: "right" }}>
+                <b>{c.registrations.toLocaleString()}</b> <span style={{ color: "#777" }}>reg</span>
+              </td>
+              <td style={{ padding: "5px 0 5px 12px", textAlign: "right", fontWeight: 800, color: c.rate === null ? "#999" : c.rate >= 40 ? "#3c7d2b" : c.rate >= 20 ? "#8a6d1f" : "#b02a2a" }}>
+                {c.rate === null ? "—" : `${c.rate}%`}
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
 function TrackingSourcesBlock({ sources }: { sources: TrackingSource[] }) {
   if (sources.length === 0) {
     return <div style={{ fontSize: 12.5, color: "#999" }}>No source data from Zoom yet.</div>;
@@ -311,7 +391,7 @@ function TrackingSourcesBlock({ sources }: { sources: TrackingSource[] }) {
   const max = Math.max(...sources.map((s) => s.registration_count), 1);
   return (
     <div>
-      <div style={{ fontSize: 11.5, color: "#777", fontWeight: 700, marginBottom: 6 }}>By source (Zoom)</div>
+      <div style={{ fontSize: 11.5, color: "#777", fontWeight: 700, marginBottom: 6 }}>Zoom-tracked links (native registration page only)</div>
       <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
         {sources.map((s) => (
           <div key={s.source_name} style={{ fontSize: 12.5 }}>
