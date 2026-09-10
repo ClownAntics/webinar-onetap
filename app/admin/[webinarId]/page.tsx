@@ -175,7 +175,8 @@ export default async function WebinarDetail({
       const reg = regsBySource.get(k)?.size ?? 0;
       return { name: k, visits: v, registrations: reg, rate: v > 0 ? Math.round((reg / v) * 100) : null };
     })
-    .filter((c) => c.visits > 0 || c.registrations > 0)
+    // Hide typo'd src tags (a stray "uauzi" with one visit) — noise, not a channel.
+    .filter((c) => c.registrations > 0 || c.visits >= 5)
     .sort((a, b) => b.registrations - a.registrations);
 
   // The most-requested themes, distilled from the free-text answers.
