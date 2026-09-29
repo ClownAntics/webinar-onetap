@@ -16,6 +16,12 @@ were removed.
 ## Live
 - **Repo:** https://github.com/ClownAntics/webinar-onetap (public), branch `master`
 - **Prod:** https://webinar-onetap.vercel.app  (Vercel project `webinar-onetap`, org `bcabot202s-projects`)
+- **Customer-facing domain (2026-09-29): https://webinars.facepaint.com** — CNAME `webinars` →
+  `cname.vercel-dns.com` in **Cloudflare** (facepaint.com's DNS lives there, not GoDaddy; proxy
+  OFF/grey cloud or Vercel's cert breaks). Bound to production; `NEXT_PUBLIC_SITE_URL` now points at
+  it, so all new copy-links are `webinars.facepaint.com/w/…`. Old `webinar-onetap.vercel.app` links
+  keep working. Admin still lives at the vercel.app URL (no Supabase redirect added for the new
+  domain — add `https://webinars.facepaint.com/auth/callback` if anyone logs in there).
 - **Deploy:** `vercel deploy --prod --yes` from the repo. `gh` + `vercel` CLIs are authed as `bcabot202`.
 - **Auth:** Supabase Google login, gated to `@clownantics.com` / `@facepaint.com` / `@careerlearning.com`.
   ⚠️ **Login lands you in af-tag-review?** The Supabase project is SHARED and its Auth
