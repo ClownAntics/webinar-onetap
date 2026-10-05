@@ -66,6 +66,8 @@ export default function SetupPanel(props: SetupInitial) {
   const [agenda, setAgenda] = useState(props.agenda);
   const [bannerUrl, setBannerUrl] = useState(props.banner_url);
   const [saving, setSaving] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
   const [msg, setMsg] = useState("");
 
@@ -120,6 +122,33 @@ export default function SetupPanel(props: SetupInitial) {
         </div>
       </div>
     );
+  }
+
+  async function deleteWebinar() {
+    const ok = confirm(
+      [
+        "Delete this webinar from OneTap?",
+        "",
+        "This removes its setup and any email/SMS drafts. Registrations and attendance are kept as history.",
+        "",
+        "If the webinar still exists in Zoom it will come back as NEEDS SETUP - delete it in Zoom too if it is really cancelled.",
+      ].join("\n")
+    );
+    if (!ok) return;
+    setDeleting(true);
+    setDeleteError(null);
+    const res = await fetch("/api/admin/webinar/delete", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ webinarId: props.webinarId }),
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) {
+      setDeleteError(data.error ?? "Couldn't delete.");
+      setDeleting(false);
+      return;
+    }
+    window.location.href = "/admin";
   }
 
   return (
@@ -300,6 +329,35 @@ export default function SetupPanel(props: SetupInitial) {
               Anyone can use this — visitors type their name and email on the page. Pick where
               you&apos;re posting it so registrations show up under that channel in the stats.
             </div>
+          </div>
+
+          <div style={{ borderTop: "1px solid #eee", paddingTop: 14, marginTop: 4 }}>
+            <button
+              type="button"
+              onClick={deleteWebinar}
+              disabled={deleting}
+              style={{
+                background: "#fff",
+                color: "#b02a2a",
+                border: "1px solid #e7b9b9",
+                borderRadius: 10,
+                padding: "9px 14px",
+                fontWeight: 800,
+                fontSize: 13,
+                cursor: deleting ? "wait" : "pointer",
+              }}
+            >
+              {deleting ? "Deleting…" : "Delete this webinar"}
+            </button>
+            <div style={helpStyle}>
+              For a webinar that was cancelled or recreated in Zoom. Keeps registrations as
+              history. Blocked while any send is scheduled — cancel those in Email Commander first.
+            </div>
+            {deleteError && (
+              <div style={{ background: "#FBE3E4", color: "#B41F24", borderRadius: 10, padding: 10, fontSize: 13, marginTop: 8 }}>
+                {deleteError}
+              </div>
+            )}
           </div>
         </>
       )}
