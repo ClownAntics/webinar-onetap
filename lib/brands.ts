@@ -111,3 +111,23 @@ export const BRAND_LABELS: Record<Brand, string> = {
   clownantics: "Clownantics",
   careerlearning: "CareerLearning",
 };
+
+/**
+ * The customer-facing host for a brand's links. Each brand with its own
+ * domain gets branded links (webinars.facepaint.com, webinars.clownantics.com);
+ * anything else falls back to the app's default site URL. Overridable per
+ * brand via NEXT_PUBLIC_SITE_URL_<BRAND> without a code change.
+ */
+export function publicUrlFor(brand: Brand | string | null | undefined, fallback: string): string {
+  const key = ((brand as string) ?? "facepaint").toUpperCase();
+  const override = process.env[`NEXT_PUBLIC_SITE_URL_${key}`];
+  if (override) return override.replace(/\/$/, "");
+  switch (brand) {
+    case "facepaint":
+      return "https://webinars.facepaint.com";
+    case "clownantics":
+      return "https://webinars.clownantics.com";
+    default:
+      return fallback.replace(/\/$/, "");
+  }
+}

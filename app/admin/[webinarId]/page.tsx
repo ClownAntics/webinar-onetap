@@ -12,6 +12,7 @@ import { computeOneWebinarMetrics } from "@/lib/reporting";
 import { STATUS_META, autoAdjust } from "@/lib/status";
 import { env } from "@/lib/env";
 import { BRAND_LABELS } from "@/lib/brands";
+import { publicUrlFor } from "@/lib/brands";
 import type { WebinarConfig, WebinarMetrics, WebinarStatus } from "@/lib/types";
 
 export const dynamic = "force-dynamic";
@@ -213,7 +214,10 @@ export default async function WebinarDetail({
   // NOTE: snake_case tags. README-build-v3 specified [[contact.firstName]], but
   // the links Yumer actually sent used [[contact.first_name]] and expanded
   // correctly across 173 registrations (2026-08-17) — camelCase is unproven.
-  const omnisendLink = `${env.siteUrl}/w/${webinarId}?e=[[contact.email]]&fn=[[contact.first_name]]&ln=[[contact.last_name]]`;
+  // Links carry the BRAND's domain, so a Clownantics webinar never ships a
+  // facepaint.com link (and vice versa).
+  const publicBase = publicUrlFor(d.config?.brand, env.siteUrl);
+  const omnisendLink = `${publicBase}/w/${webinarId}?e=[[contact.email]]&fn=[[contact.first_name]]&ln=[[contact.last_name]]`;
 
   return (
     <main style={{ minHeight: "100vh", background: "#f5f4f0", color: "#2f302f" }}>
@@ -248,7 +252,7 @@ export default async function WebinarDetail({
             <SetupPanel
               webinarId={webinarId}
               brand={d.config?.brand ?? "facepaint"}
-              baseLink={`${env.siteUrl}/w/${webinarId}`}
+              baseLink={`${publicBase}/w/${webinarId}`}
               display_title={d.config?.display_title ?? (cleanWebinarTitle(d.rawTopic) || d.topic)}
               question_text={d.config?.question_text ?? d.zoomQuestion ?? ""}
               agenda={d.config?.agenda ?? d.zoomAgenda ?? ""}
