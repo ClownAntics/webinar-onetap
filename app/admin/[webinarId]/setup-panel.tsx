@@ -40,7 +40,10 @@ const MERGE_SOURCES: { value: string; label: string }[] = [
 
 const PLAIN_SOURCES: { value: string; label: string }[] = [
   { value: "website", label: "Website" },
-  { value: "social", label: "Social media" },
+  { value: "instagram", label: "Instagram" },
+  { value: "tiktok", label: "TikTok" },
+  { value: "facebook", label: "Facebook" },
+  { value: "social", label: "Other social" },
 ];
 
 export interface SetupInitial {
