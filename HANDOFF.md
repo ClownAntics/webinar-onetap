@@ -22,7 +22,7 @@ were removed.
   it, so all new copy-links are `webinars.facepaint.com/w/…`. Old `webinar-onetap.vercel.app` links
   keep working. Admin still lives at the vercel.app URL (no Supabase redirect added for the new
   domain — add `https://webinars.facepaint.com/auth/callback` if anyone logs in there).
-- **Deploy:** `vercel deploy --prod --yes` from the repo. `gh` + `vercel` CLIs are authed as `bcabot202`.
+- **Deploy:** automatic — Vercel is connected to GitHub (since 2026-11-25): a push to `master` deploys production, other branches get preview URLs. Manual fallback: `vercel deploy --prod --yes` (CLI authed as `bcabot202`).
 - **Auth:** Supabase Google login, gated to `@clownantics.com` / `@facepaint.com` / `@careerlearning.com`.
   ⚠️ **Login lands you in af-tag-review?** The Supabase project is SHARED and its Auth
   *Site URL* points at that other app. Any login whose `redirectTo` is not an EXACT
