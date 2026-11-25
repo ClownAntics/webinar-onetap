@@ -11,6 +11,14 @@ const card: React.CSSProperties = {
 };
 const h2: React.CSSProperties = { fontSize: 17, fontWeight: 800, marginTop: 0 };
 const li: React.CSSProperties = { marginBottom: 6, lineHeight: 1.5 };
+const th: React.CSSProperties = { textAlign: "left", padding: "6px 8px", borderBottom: "2px solid #eee" };
+const td: React.CSSProperties = { padding: "6px 8px", borderBottom: "1px solid #eee", verticalAlign: "top", overflowWrap: "anywhere" };
+const PERMANENT: [string, string][] = [
+  ["Instagram bio", "instagram"],
+  ["TikTok bio", "tiktok"],
+  ["Facebook", "facebook"],
+  ["Website", "website"],
+];
 
 export default function HelpPage() {
   return (
@@ -74,10 +82,50 @@ export default function HelpPage() {
           </p>
         </section>
 
+        <section style={card} id="permanent-links">
+          <h2 style={h2}>Permanent links (Instagram, TikTok, website) — new Nov 2026</h2>
+          <p style={{ marginTop: 0 }}>
+            One link per place that <b>never changes</b>. It always opens the sign-up page for the
+            <b> next free webinar</b> (masterclasses are skipped), and it records where the person
+            came from. Post it once — no more re-pasting a link for every webinar.
+          </p>
+          <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13.5, marginBottom: 12 }}>
+            <thead>
+              <tr><th style={th}>Where</th><th style={th}>FacePaint</th><th style={th}>Clownantics</th></tr>
+            </thead>
+            <tbody>
+              {PERMANENT.map(([where, src]) => (
+                <tr key={src}>
+                  <td style={td}>{where}</td>
+                  <td style={td}><code>webinars.facepaint.com/next?src={src}</code></td>
+                  <td style={td}><code>webinars.clownantics.com/next?src={src}</code></td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+          <ul>
+            <li style={li}><b>Always use the link for the place you&apos;re posting</b> — the <code>src=</code> part is how Stats tells Instagram, TikTok and the website apart.</li>
+            <li style={li}>Somewhere new (a blog, YouTube, a flyer QR code)? Same link, your own label: <code>/next?src=youtube</code>. Lowercase letters, numbers and dashes, up to 20 characters.</li>
+            <li style={li}>In Admin, a webinar&apos;s Setup panel has <b>Copy permanent bio link</b> — pick the channel, then copy.</li>
+            <li style={li}>If no webinar is scheduled, the link shows a &quot;no webinars open right now&quot; page instead of an old webinar.</li>
+            <li style={li}><b>Email &amp; SMS are unchanged</b> — keep using <b>Copy link for Yumer</b> for each webinar (it carries the person&apos;s name and email).</li>
+          </ul>
+        </section>
+
+        <section style={card} id="more-webinars">
+          <h2 style={h2}>Signing up for more than one webinar</h2>
+          <ul>
+            <li style={li}>After someone registers, the confirmation screen shows <b>&quot;Want more free webinars?&quot;</b> with a <b>Sign up for another webinar</b> button (hidden if nothing else is open).</li>
+            <li style={li}>It opens a list of the brand&apos;s open webinars, soonest first. Ones they&apos;re already registered for show <b>✓ You&apos;re signed up</b>. Their details are remembered, so each extra sign-up is one tap.</li>
+            <li style={li}>Extra sign-ups count toward the <b>same channel</b> as the first one (started on Instagram → all Instagram).</li>
+            <li style={li}>The list is also a page of its own: <code>webinars.facepaint.com/webinars</code> (and <code>webinars.clownantics.com/webinars</code>).</li>
+          </ul>
+        </section>
+
         <section style={card}>
           <h2 style={h2}>Website &amp; social links</h2>
           <ul>
-            <li style={li}>The <b>plain link</b> (no name/email in it) is safe to post anywhere — the website, social, a blog.</li>
+            <li style={li}>For anything that stays up (bios, website), use the <a href="#permanent-links">permanent links</a> above. The per-webinar <b>plain link</b> (Copy link for Aubrey) still works for a post about one specific webinar.</li>
             <li style={li}><b>Anyone who has registered through the app before gets the one-tap page</b> from that plain link — their browser remembers them (for a year). Brand-new visitors see a short name + email form.</li>
             <li style={li}>On a shared computer, the <b>&quot;Not you?&quot;</b> button forgets the remembered person.</li>
             <li style={li}>The <b>&quot;What customers want to see&quot;</b> panel includes answers from people who registered on Zoom&apos;s own page too, not just through the app.</li>
