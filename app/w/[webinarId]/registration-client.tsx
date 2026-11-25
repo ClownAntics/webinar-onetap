@@ -95,6 +95,8 @@ export default function RegistrationClient(props: {
   preview?: boolean;
   /** ?brand= override, honored only in preview mode (theme check before saving). */
   previewBrand?: string;
+  /** How many OTHER webinars of this brand are open for sign-up. */
+  moreOpen?: number;
 }) {
   const { webinarId, config } = props;
   const [email, setEmail] = useState(props.email);
@@ -314,13 +316,24 @@ export default function RegistrationClient(props: {
             </p>
             {/* Keep the sign-ups going: the list carries the same src, and the
                 identity cookie (just set) makes the next sign-up one tap. */}
-            <a
-              className={styles.secondaryBtn}
-              style={{ marginTop: 6 }}
-              href={`/webinars?${new URLSearchParams({ src: props.source, brand: brand.key }).toString()}`}
-            >
-              Sign up for another webinar
-            </a>
+            {(props.moreOpen ?? 0) > 0 && (
+              <div className={styles.moreBlock}>
+                <div className={styles.moreHeading}>Want more free webinars?</div>
+                <p className={styles.moreText}>
+                  {props.moreOpen === 1
+                    ? "There's 1 more coming up."
+                    : `There are ${props.moreOpen} more coming up.`}{" "}
+                  Your details are saved — it&apos;s one tap each.
+                </p>
+                <a
+                  className={styles.cta}
+                  style={{ display: "flex", alignItems: "center", justifyContent: "center", textDecoration: "none", fontSize: 17, height: 60, letterSpacing: 0 }}
+                  href={`/webinars?${new URLSearchParams({ src: props.source, brand: brand.key }).toString()}`}
+                >
+                  Sign up for another webinar →
+                </a>
+              </div>
+            )}
           </>
         )}
 

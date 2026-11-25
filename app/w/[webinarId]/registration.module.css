@@ -236,3 +236,26 @@
     padding-top: 48px;
   }
 }
+
+/* "Sign up for another webinar" block on the success screen */
+.moreBlock {
+  width: 100%;
+  margin-top: 12px;
+  padding: 18px 16px 20px;
+  border-radius: var(--fp-radius-input);
+  background: var(--fp-surface);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  text-align: center;
+}
+.moreHeading {
+  font-size: 20px;
+  font-weight: 900;
+}
+.moreText {
+  margin: 0 0 6px;
+  font-size: 14.5px;
+  color: var(--fp-text-85);
+}

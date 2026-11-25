@@ -3,6 +3,8 @@ import { cookies } from "next/headers";
 import { appSupabase } from "@/lib/supabase";
 import { getWebinar } from "@/lib/zoom";
 import type { WebinarConfig } from "@/lib/types";
+import type { Brand } from "@/lib/brands";
+import { listOpenWebinars } from "@/lib/open-webinars";
 
 export const dynamic = "force-dynamic";
 
@@ -80,6 +82,15 @@ export default async function WebinarLanding({
     loadRegistrationUrl(webinarId),
   ]);
 
+  // Other webinars open for sign-up — drives the "sign up for another" block.
+  let moreOpen = 0;
+  try {
+    const open = await listOpenWebinars((config?.brand ?? "facepaint") as Brand);
+    moreOpen = open.filter((w) => w.webinar_id !== webinarId).length;
+  } catch {
+    moreOpen = 0;
+  }
+
   const cookieId = get("e") ? null : await readIdentityCookie();
 
   return (
@@ -93,6 +104,7 @@ export default async function WebinarLanding({
       registrationUrl={registrationUrl}
       preview={get("preview") === "1"}
       previewBrand={get("brand")}
+      moreOpen={moreOpen}
     />
   );
 }
