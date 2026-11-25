@@ -33,6 +33,17 @@ were removed.
   `https://webinar-onetap-*-bcabot202s-projects.vercel.app/auth/callback` (previews).
   Nothing in this repo can fix it — Supabase decides before the user reaches the app.
 
+## Permanent bio link + sign-up loop (2026-11-25)
+- **`/next?src=instagram`** (or tiktok/facebook) — permanent link; 307, `no-store`, to the brand's
+  next free webinar (`lib/open-webinars.ts`: not NEEDS_SETUP, not ended, soonest first). Brand from
+  the domain; `&brand=` for vercel.app / CareerLearning. Nothing scheduled → `/webinars`.
+- **`/webinars`** — public list of open webinars for the brand; carries `src` (+ e/fn/ln) into each
+  sign-up link; marks ones the remembered person already signed up for.
+- Success screen has **Sign up for another webinar** → `/webinars?src=<same>&brand=<brand>`.
+- Admin Setup: Instagram/TikTok/Facebook in the plain-link picker + **Copy permanent bio link**.
+- ⚠️ Masterclasses are excluded by the title rule (`/master ?class/i`, same as the admin tabs) —
+  a masterclass not named "masterclass" would leak in. A real `is_masterclass` column is the fix if that happens.
+
 ## V2 design track (started 2026-08-26)
 Blake is redesigning the app (Claude Design; brief in `CLAUDE-DESIGN-BRIEF.md`).
 **Production stays on `master`** — v2 work happens on the **`v2` branch** only.

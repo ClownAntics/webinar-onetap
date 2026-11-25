@@ -40,8 +40,21 @@ const MERGE_SOURCES: { value: string; label: string }[] = [
 
 const PLAIN_SOURCES: { value: string; label: string }[] = [
   { value: "website", label: "Website" },
-  { value: "social", label: "Social media" },
+  { value: "instagram", label: "Instagram" },
+  { value: "tiktok", label: "TikTok" },
+  { value: "facebook", label: "Facebook" },
+  { value: "social", label: "Other social" },
 ];
+
+/**
+ * The brand's permanent /next link. Brands on their own domain get the brand
+ * from the host; the rest (vercel.app fallback) need ?brand=.
+ */
+function permanentLink(baseLink: string, brand: Brand, src: string): string {
+  const origin = baseLink.replace(/\/w\/[^/]*$/, "");
+  const ownDomain = origin.includes(brand);
+  return `${origin}/next?src=${src}${ownDomain ? "" : `&brand=${brand}`}`;
+}
 
 export interface SetupInitial {
   webinarId: string;
@@ -328,6 +341,18 @@ export default function SetupPanel(props: SetupInitial) {
             <div style={helpStyle}>
               Anyone can use this — visitors type their name and email on the page. Pick where
               you&apos;re posting it so registrations show up under that channel in the stats.
+            </div>
+            <div style={{ marginTop: 10 }}>
+              <CopyButton
+                text={permanentLink(props.baseLink, props.brand, plainSource)}
+                label="Copy permanent bio link"
+                reveal
+                bg="#2F302F"
+              />
+            </div>
+            <div style={helpStyle}>
+              For the Instagram / TikTok bio: never changes, always opens the next free webinar
+              (masterclasses skipped), uses the same channel picked above.
             </div>
           </div>
 

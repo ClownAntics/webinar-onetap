@@ -312,6 +312,15 @@ export default function RegistrationClient(props: {
             <p className={styles.footer}>
               Your confirmation with the join link is on its way to {maskEmail(email)}
             </p>
+            {/* Keep the sign-ups going: the list carries the same src, and the
+                identity cookie (just set) makes the next sign-up one tap. */}
+            <a
+              className={styles.secondaryBtn}
+              style={{ marginTop: 6 }}
+              href={`/webinars?${new URLSearchParams({ src: props.source, brand: brand.key }).toString()}`}
+            >
+              Sign up for another webinar
+            </a>
           </>
         )}
 
@@ -323,7 +332,7 @@ export default function RegistrationClient(props: {
   );
 }
 
-function BrandLogo({ brand }: { brand: BrandTheme }) {
+export function BrandLogo({ brand }: { brand: BrandTheme }) {
   if (brand.logoSrc && brand.logoShape === "wide") {
     const { width, height } = brand.logoSize ?? { width: 300, height: 100 };
     return <Image src={brand.logoSrc} alt={brand.name} width={width} height={height} className={styles.logoWide} priority />;
